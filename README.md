@@ -6,14 +6,11 @@
 
 ## ขั้นตอนก่อนใช้งาน
 
-1. ทำการติดตั้ง Python Version 3.9.x
+1. ทำการติดตั้ง Python Version >= 3.9 https://www.python.org/downloads/
 
-2. 
-
-3. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
+2. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
 
   
-
 3. การใช้งานโดยจะให้ Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) 
 
 4. เลือก Download ZIP
