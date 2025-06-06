@@ -5,11 +5,20 @@
 
 
 ## ขั้นตอนก่อนใช้งาน
-1. การใช้งานโดยจะให้ Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) 
 
-2. เลือก Download ZIP
+1. ทำการติดตั้ง Python Version 3.9.x
+
+2. 
+
+3. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
+
+  
+
+3. การใช้งานโดยจะให้ Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) 
+
+4. เลือก Download ZIP
  
-3. ทำการแตกไฟล์ .zip จะได้ Folder ที่ชื่อว่า EGAT_SBK_Worklist_Convert-main มา
+5. ทำการแตกไฟล์ .zip จะได้ Folder ที่ชื่อว่า EGAT_SBK_Worklist_Convert-main มา
 
 ![image](https://github.com/user-attachments/assets/11a4eed2-36da-499b-bfcc-c775408c0d9c)
 
