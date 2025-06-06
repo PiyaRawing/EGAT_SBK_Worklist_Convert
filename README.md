@@ -8,15 +8,16 @@
 
 1. ทำการติดตั้ง Python Version >= 3.9 https://www.python.org/downloads/
 
-   ![image](https://github.com/user-attachments/assets/1f4ea6fd-9728-4a36-8a73-09e5e978a6bc)
+![image](https://github.com/user-attachments/assets/1f4ea6fd-9728-4a36-8a73-09e5e978a6bc)
 
 2. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
 
 ```
 pip install openpyxl
 ```
+![image](https://github.com/user-attachments/assets/c218fdc6-8ede-4434-9ccb-6622f54ed635)
   
-3. การใช้งานโดยจะให้ Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) 
+3. Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) https://github.com/PiyaRawing/EGAT_SBK_Worklist_Convert
 
 4. เลือก Download ZIP
  
