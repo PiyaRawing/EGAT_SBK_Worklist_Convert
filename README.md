@@ -8,8 +8,13 @@
 
 1. ทำการติดตั้ง Python Version >= 3.9 https://www.python.org/downloads/
 
+   ![image](https://github.com/user-attachments/assets/1f4ea6fd-9728-4a36-8a73-09e5e978a6bc)
+
 2. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
 
+```
+pip install openpyxl
+```
   
 3. การใช้งานโดยจะให้ Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) 
 
@@ -40,6 +45,8 @@
 1.เมื่อกด เลือกไฟล์ หรือ ปุ่ม Convert แล้วพบ Error แจ้งเตือน เกิดจาก **เปิดไฟล์ที่จะทำการ** Convert ไว้อยู่ ให้ปิดไฟล์นั้นก่อน
 
 2.เมื่อกด Save แล้วพบ Error แจ้งเตือน เกิดจาก ไฟล์ชื่อเดียวกัน เปิดไว้อยู่ **ให้ปิดไฟล์นั้นก่อน** เพราะ โปรแกรมจะ Save ไฟล์ทับขณะไฟล์นั้นถูกเปิดไว้อยู่ไม่ได้
+
+![image](https://github.com/user-attachments/assets/2e66d0bb-17a0-416f-9a6c-1a2fdc32235c)
  
 > [!CAUTION]
 > **File main.py** และ **Respone - Do not Delete.xlsx** ต้องอยู่ภายใต้ Folder เดียวกัน
