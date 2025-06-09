@@ -47,6 +47,11 @@ pip install openpyxl
 
 8. เสร็จสิ้นการทำงาน
 
+## เพิ่มหรือแก้ไข หน่วยงาน ใน File Respone
+หากจะแก้ไขข้อมูลของหน่วยงาน ใน Folder ที่แตกไฟล์ไป จะมีไฟล์ **Respone - Do not Delete.xlsx** สามารถ แก้ไขได้ ในไฟล์นี้
+
+![image](https://github.com/user-attachments/assets/ba1a1535-3b07-407f-8f69-d2736ddc42a1)
+
 ## ปัญหาที่อาจพบเจอ
 1.เมื่อกด เลือกไฟล์ หรือ ปุ่ม Convert แล้วพบ Error แจ้งเตือน เกิดจาก **เปิดไฟล์ที่จะทำการ** Convert ไว้อยู่ ให้ปิดไฟล์นั้นก่อน
 
