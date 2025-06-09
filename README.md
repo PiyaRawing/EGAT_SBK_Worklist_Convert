@@ -1,8 +1,13 @@
 ## EGAT SBK Worklist Convert
 โปรแกรม Python สำหรับแปลง Worklist (Excel File) โรงไฟฟ้าพระนครใต้ (EGAT) ให้สำหรับให้กับ Template Maximo (Excel File)
-การทำงานของโปรแกรม จะเป็นการย้าย Cell, Split Resp. Cell, แปลง Respone TH -> EN, เพิ่ม TYPE ของหน่วยงาน, Split Acitivity
-และจัดลำดับ TASK order
-
+การทำงานของโปรแกรม 
+- จะเป็นการย้าย Cell
+- Split Resp. Cell (กรณี 1 Row มี 2 หน่วยงาน)
+- แปลง Respone Carft
+- เพิ่ม TYPE ของหน่วยงาน
+- Split Acitivity
+- Highlight cell ที่เกิน 85 ตัวอักษร (ตามข้ำจำกัดของโปรแกรม Maximo)
+- จัดลำดับ TASK order
 
 ## ขั้นตอนก่อนใช้งาน
 
@@ -51,3 +56,8 @@ pip install openpyxl
  
 > [!CAUTION]
 > **File main.py** และ **Respone - Do not Delete.xlsx** ต้องอยู่ภายใต้ Folder เดียวกัน
+
+> [!CAUTION]
+> การแยก Activity จะแยกด้วย **เลขข้อจุด** (1.aaa2.bbb) หรือหากมีเครื่องหมาย วงเล็บ () **ต้องใส่ให้ครบทุกครั้ง** เพราะโปรแกรมจะมองสิ่งที่อยู่ในวงเว็บเป็นเนื้อหาของข้อนั้น เครื่องหมายอื่นใส่ได้ปกติไม่มีผลต่อการแยก
+ 
+![image](https://github.com/user-attachments/assets/b66c8e6d-de17-4987-b149-4b3580b6a4e5)
