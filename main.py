@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import openpyxl
-from openpyxl.styles import PatternFill # Import PatternFill for cell coloring
-from openpyxl.styles import Color # Import Color for defining colors
+from openpyxl.styles import PatternFill, Font, Border, Side, Alignment # Import specific style components
+from openpyxl.styles import Color # Corrected Import: Import Color for defining colors
+from openpyxl.comments import Comment # Import Comment for cell comments
 import os
 import re # Import the regular expression module
 import itertools # Import itertools for grouping
@@ -10,7 +11,6 @@ import itertools # Import itertools for grouping
 # Global variable for worklist file path
 worklist_file_path = None
 # Global variable for lookup data (from Respone - Do not Delete.xlsx)
-# This will now store two dictionaries for two different VLOOKUPs.
 response_lookup_data = {
     'AB_lookup': {}, # For J to K (Col A: Col B in Response file)
     'CD_lookup': {}  # For S to L (Col C: Col D in Response file)
@@ -25,6 +25,9 @@ sheet_option_menu = None
 
 # Global variable for the highlighting option state
 enable_highlight_var = None # This will be a tk.BooleanVar
+
+# Global variable to store template rows data (including styles and merged cells)
+template_rows_data = []
 
 def select_excel_file():
     """
@@ -231,6 +234,7 @@ def load_lookup_data():
     """
     Loads data from 'Respone - Do not Delete.xlsx' into a dictionary for VLOOKUP.
     Keys are from Column A and C, values are from Column B and D respectively.
+    Specifically loads from the 'Respone' sheet.
     """
     global response_lookup_data
     # Initialize lookup data structure to hold two separate lookup dictionaries
@@ -253,7 +257,16 @@ def load_lookup_data():
 
     try:
         lookup_workbook = openpyxl.load_workbook(response_file_path)
-        lookup_sheet = lookup_workbook.active
+        # Explicitly select the 'Respone' sheet
+        if 'Respone' in lookup_workbook.sheetnames:
+            lookup_sheet = lookup_workbook['Respone']
+        else:
+            messagebox.showerror(
+                "ข้อผิดพลาดชีท",
+                f"ไม่พบชีท 'Respone' ในไฟล์ '{response_file_path}'\n"
+                "โปรดตรวจสอบชื่อชีทในไฟล์ Respone - Do not Delete.xlsx"
+            )
+            return False
 
         # Iterate through rows, assuming data starts from row 1.
         # Column A is index 1, Column B is index 2. Column C is index 3, Column D is index 4.
@@ -277,6 +290,77 @@ def load_lookup_data():
         )
         return False # Indicate failure to load
 
+def load_template_rows():
+    """
+    Loads the first two rows (including values, styles, comments, and merged cells)
+    from the 'Template' sheet of 'Respone - Do not Delete.xlsx'.
+    """
+    global template_rows_data
+    template_rows_data = [] # Reset template data
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    response_file_path = os.path.join(script_dir, "Respone - Do not Delete.xlsx")
+
+    if not os.path.exists(response_file_path):
+        messagebox.showerror(
+            "ข้อผิดพลาด",
+            f"ไม่พบไฟล์ Template: '{response_file_path}'\n"
+            "กรุณาตรวจสอบว่าไฟล์ 'Respone - Do not Delete.xlsx' อยู่ในโฟลเดอร์เดียวกับโปรแกรม"
+        )
+        return False
+
+    try:
+        template_workbook = openpyxl.load_workbook(response_file_path)
+        if 'Template' in template_workbook.sheetnames:
+            template_sheet = template_workbook['Template']
+        else:
+            messagebox.showerror(
+                "ข้อผิดพลาดชีท",
+                f"ไม่พบชีท 'Template' ในไฟล์ '{response_file_path}'\n"
+                "โปรดตรวจสอบชื่อชีทในไฟล์ Respone - Do not Delete.xlsx"
+            )
+            return False
+
+        # Store merged cell ranges from the template sheet
+        merged_cells_ranges_from_template = []
+        for merged_range in template_sheet.merged_cells.ranges:
+            merged_cells_ranges_from_template.append(str(merged_range)) 
+        
+        # Add a placeholder for merged ranges. The first item in template_rows_data
+        # will now be this list of merged ranges.
+        template_rows_data.append(merged_cells_ranges_from_template)
+
+        # Read cell data for the first two rows (1-based indexing in openpyxl)
+        for r_idx in range(1, 3): # Rows 1 and 2 of the template
+            row_cells_data = {}
+            # Iterate through columns up to the max_column of the template sheet
+            for c_idx in range(1, template_sheet.max_column + 1): 
+                cell = template_sheet.cell(row=r_idx, column=c_idx)
+                
+                # Copy cell attributes: For styles, recreate objects to avoid StyleProxy issues
+                # For Comment, recreate object
+                cell_data = {
+                    'value': cell.value,
+                    'fill': PatternFill(start_color=cell.fill.start_color, 
+                                        end_color=cell.fill.end_color, 
+                                        fill_type=cell.fill.fill_type) if cell.fill else None, # Recreate PatternFill
+                    'font': cell.font.copy() if cell.font else None,
+                    'border': cell.border.copy() if cell.border else None,
+                    'alignment': cell.alignment.copy() if cell.alignment else None,
+                    'number_format': cell.number_format,
+                    'comment': Comment(cell.comment.text, cell.comment.author) if cell.comment else None # Recreate Comment
+                }
+                row_cells_data[cell.column_letter] = cell_data # Store by column letter
+            template_rows_data.append(row_cells_data)
+        
+        template_workbook.close() # Close the workbook
+        return True
+    except Exception as e:
+        messagebox.showerror(
+            "ข้อผิดพลาดในการโหลด Template",
+            f"เกิดข้อผิดพลาดขณะโหลดชีท 'Template' จากไฟล์ 'Respone - Do not Delete.xlsx': {e}"
+        )
+        return False
 
 def convert_to_maximo():
     """
@@ -287,6 +371,7 @@ def convert_to_maximo():
     Process E (VLOOKUP) is applied to Column J to populate Column K, and to Column S to populate Column S (overwrite).
     Process F (Counting in G and H based on D, E, J groups) is applied.
     Process for highlighting cells in Column I (if enabled and condition met).
+    Process G (Copying template rows) is applied at the beginning of the new sheet.
     The user is prompted to choose the save location for the new file.
     """
     global selected_sheet_name # Ensure selected_sheet_name is accessible
@@ -304,6 +389,10 @@ def convert_to_maximo():
     if not load_lookup_data():
         return # Stop if lookup data cannot be loaded
 
+    # Try to load template rows for Process G
+    if not load_template_rows():
+        return # Stop if template rows cannot be loaded
+
     try:
         source_workbook = openpyxl.load_workbook(worklist_file_path)
         # Use the selected sheet name
@@ -311,7 +400,40 @@ def convert_to_maximo():
 
         new_workbook = openpyxl.Workbook()
         new_sheet = new_workbook.active
-        new_sheet.title = "Maximo Converted Data"
+        new_sheet.title = "Sheet1"
+
+        # --- Process G: Copy template rows to the new sheet ---
+        # First, handle merged cells from the template
+        if template_rows_data and isinstance(template_rows_data[0], list):
+            for merged_range_str in template_rows_data[0]:
+                try:
+                    new_sheet.merge_cells(merged_range_str)
+                except Exception as merge_err:
+                    # Log warning if merge fails (e.g., invalid range, already merged)
+                    print(f"Warning: Could not merge cells {merged_range_str}: {merge_err}") 
+        
+        # Then, copy cell data for the first two rows
+        # template_rows_data[0] is merged ranges, so actual row data starts from index 1.
+        for r_idx_template_data in range(1, 3): # Process data for original template rows 1 and 2
+            # Corresponding row in new_sheet is also r_idx_template_data (1 and 2)
+            row_data_to_copy = template_rows_data[r_idx_template_data] 
+            for col_letter, cell_info in row_data_to_copy.items():
+                target_cell = new_sheet[f"{col_letter}{r_idx_template_data}"]
+                target_cell.value = cell_info['value']
+                
+                # Copy styles and comment
+                if cell_info['fill']:
+                    target_cell.fill = cell_info['fill']
+                if cell_info['font']:
+                    target_cell.font = cell_info['font']
+                if cell_info['border']:
+                    target_cell.border = cell_info['border']
+                if cell_info['alignment']:
+                    target_cell.alignment = cell_info['alignment']
+                if cell_info['number_format']:
+                    target_cell.number_format = cell_info['number_format']
+                if cell_info['comment']:
+                    target_cell.comment = cell_info['comment']
 
         # Define a fill style for highlighting (color #ff9e00)
         highlight_fill = PatternFill(start_color='FF9E00', end_color='FF9E00', fill_type='solid')
@@ -320,9 +442,9 @@ def convert_to_maximo():
         # to facilitate grouping and counting for Process F.
         rows_for_f_process = [] 
         
-        current_output_row_idx = 1 # This keeps track of the next available row in the new sheet
+        current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
 
-        for source_row_idx in range(5, source_sheet.max_row + 1):
+        for source_row_idx in range(5, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
             data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
@@ -364,11 +486,10 @@ def convert_to_maximo():
                     
                     # Apply highlighting if enabled and condition met
                     if enable_highlight_var.get(): # Check if highlighting is enabled by the user
-                        # Check Column I content for length > 100
-                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 100:
+                        # Check Column I content for length > 85
+                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 85:
                             # Apply highlight to the cell in Column I (ONLY Column I)
                             cell_i_output.fill = highlight_fill
-                            # Removed: cell_s_output.fill = highlight_fill
 
                     # Store (D, E, J) values and their corresponding row index in the new sheet
                     # Convert None to empty string for sorting comparison
@@ -464,7 +585,7 @@ highlight_frame.pack(pady=5, padx=20, fill="x")
 # Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
     highlight_frame, 
-    text="เปิดใช้งานการเน้นสี (คอลัมน์ I หากตัวอักษรเกิน 100 ตัว)", # Updated text
+    text="เปิดใช้งานการเน้นสี (คอลัมน์ Acitivity หากตัวอักษรเกิน 85 ตัว)", # Updated text
     variable=enable_highlight_var
 )
 highlight_check.pack(side=tk.LEFT, anchor="w")
