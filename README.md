@@ -65,7 +65,13 @@ pip install openpyxl
 > [!CAUTION]
 > **File main.py** และ **Respone - Do not Delete.xlsx** ต้องอยู่ภายใต้ Folder เดียวกัน
 
+
 > [!CAUTION]
 > การแยก Activity จะแยกด้วย **เลขข้อจุด** (1.aaa2.bbb) หรือหากมีเครื่องหมาย วงเล็บ () **ต้องใส่ให้ครบทุกครั้ง** เพราะโปรแกรมจะมองสิ่งที่อยู่ในวงเว็บเป็นเนื้อหาของข้อนั้น เครื่องหมายอื่นใส่ได้ปกติไม่มีผลต่อการแยก
- 
-![image](https://github.com/user-attachments/assets/b66c8e6d-de17-4987-b149-4b3580b6a4e5)
+ ![image](https://github.com/user-attachments/assets/b66c8e6d-de17-4987-b149-4b3580b6a4e5)
+
+
+> [!CAUTION]
+> หาก File Excel **มีขนาดใหญ่กว่า 8MB** แนะนำให้ Optimize File ก่อน Reviews -> Check Performance -> Optimize All
+![image](https://github.com/user-attachments/assets/65ec9420-d253-4dba-b47c-202113fd2690)
+
