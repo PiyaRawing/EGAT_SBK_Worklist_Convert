@@ -36,7 +36,7 @@ pip install openpyxl
 ## ขั้นตอนใช้งาน
 1. เปิด Folder ที่ทำการแตกไฟล์ไว้ 
  
-2. Double Click ที่ไฟล์ **main.py**
+2. Right Click ที่ไฟล์ **main.py** Openwith **Python** หรือ Double Click ที่ **Main.exe**
 
 3. ทำการกดเลือกไฟล์ Worklist.xlsx
 
