@@ -459,7 +459,7 @@ def convert_to_maximo():
         
         current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
 
-        for source_row_idx in range(3, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
+        for source_row_idx in range(5, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
             data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
@@ -533,12 +533,15 @@ def convert_to_maximo():
                 new_sheet.cell(row=row_idx_in_new_sheet, column=8).value = current_count
                 current_count += 10 # Increment by 10 for the next row in this group
 
+        # Get the selected sheet name to use as the default file name suggestion
+        default_file_name = f"{selected_sheet_name.get()} converted.xlsx"
+
         # Open a "Save As" dialog for the user to choose the save location for the new file
         output_file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx", # Default file extension
             filetypes=[("Excel files", "*.xlsx")], # Filter to show only Excel files
             title="บันทึกไฟล์ Maximo Data เป็น", # Dialog title
-            initialfile="converted_maximo_data.xlsx" # Default file name suggestion
+            initialfile=default_file_name # Default file name suggestion now uses the selected sheet name
         )
 
         if not output_file_path: # If the user clicks Cancel in the save dialog
