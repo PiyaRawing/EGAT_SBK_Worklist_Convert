@@ -26,6 +26,8 @@ sheet_option_menu = None
 
 # Global variable for the highlighting option state
 enable_highlight_var = None # This will be a tk.BooleanVar
+# Global variable for the option to include (not skip) rows with strikethrough
+include_strikethrough_rows_var = None # This will be a tk.BooleanVar
 
 # Global variable to store template rows data (including styles and merged cells)
 template_rows_data = []
@@ -65,22 +67,19 @@ def select_excel_file():
         file_path_label.config(text=f"ไฟล์ Worklist: {os.path.basename(worklist_file_path)}")
 
         try:
-            # Load the workbook to get sheet names (read_only=True for faster loading and less memory usage)
-            temp_workbook = openpyxl.load_workbook(worklist_file_path, read_only=True)
+            # Load the workbook to get sheet names.
+            # We need to load in read-write mode to check for strikethrough later.
+            temp_workbook = openpyxl.load_workbook(worklist_file_path) 
             sheet_names = temp_workbook.sheetnames
             
             # Attempt to get the active sheet's title. If it fails, default to the first sheet.
             active_sheet_title = None
             try:
-                # To get the active sheet title reliably, sometimes it's better to open without read_only
-                # and then close it immediately after getting the title.
-                full_workbook_for_active = openpyxl.load_workbook(worklist_file_path)
-                active_sheet_title = full_workbook_for_active.active.title
-                full_workbook_for_active.close()
+                active_sheet_title = temp_workbook.active.title
             except Exception:
                 pass # Ignore error if cannot determine active sheet
 
-            temp_workbook.close() # Close the read_only workbook immediately
+            temp_workbook.close() # Close the workbook immediately
 
             if not sheet_names:
                 messagebox.showwarning("คำเตือน", "ไฟล์ Excel ที่เลือกไม่มีชีท!")
@@ -388,9 +387,12 @@ def convert_to_maximo():
     Process for highlighting cells in Column I (if enabled and condition met).
     Process G (Copying template rows) is applied at the beginning of the new sheet.
     The user is prompted to choose the save location for the new file.
+    
+    New Feature: Option to include/exclude rows with strikethrough formatting.
     """
     global selected_sheet_name # Ensure selected_sheet_name is accessible
     global enable_highlight_var # Ensure enable_highlight_var is accessible
+    global include_strikethrough_rows_var # Ensure new strikethrough variable is accessible
 
     if not worklist_file_path:
         messagebox.showwarning("คำเตือน", "กรุณาเลือกไฟล์ Worklist ก่อนดำเนินการ!")
@@ -409,6 +411,7 @@ def convert_to_maximo():
         return # Stop if template rows cannot be loaded
 
     try:
+        # Load the workbook in read-write mode to access formatting like strikethrough
         source_workbook = openpyxl.load_workbook(worklist_file_path)
         # Use the selected sheet name
         source_sheet = source_workbook[selected_sheet_name.get()]
@@ -459,7 +462,22 @@ def convert_to_maximo():
         
         current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
 
-        for source_row_idx in range(5, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
+        for source_row_idx in range(5, source_sheet.max_row + 1):
+            # --- Strikethrough Check (Conditional Skip) ---
+            # If 'include_strikethrough_rows_var' is False (default: skip strikethrough rows),
+            # then check for strikethrough and skip the row if found.
+            if not include_strikethrough_rows_var.get(): 
+                skip_row_due_to_strikethrough = False
+                for col_idx in range(1, source_sheet.max_column + 1): # Iterate through all columns in the row
+                    cell = source_sheet.cell(row=source_row_idx, column=col_idx)
+                    if cell.font and cell.font.strike:
+                        skip_row_due_to_strikethrough = True
+                        break # Found strikethrough, no need to check other cells in this row
+                
+                if skip_row_due_to_strikethrough:
+                    print(f"Skipping row {source_row_idx} due to strikethrough (option to include is OFF).")
+                    continue # Skip this row and move to the next source row
+
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
             data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
@@ -565,7 +583,7 @@ def convert_to_maximo():
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Excel Worklist Converter")
-root.geometry("500x320") # Increased height for more space
+root.geometry("550x350") # Adjust height for the new options arrangement
 root.resizable(False, False) # Prevent window resizing
 
 # Variable to store the selected file path (initialized to None)
@@ -583,6 +601,8 @@ sheet_option_menu = None
 
 # Initialize the BooleanVar for highlighting
 enable_highlight_var = tk.BooleanVar(value=False) # Default to false (not highlighted)
+# Initialize the BooleanVar for including strikethrough rows (default to false, meaning skip them)
+include_strikethrough_rows_var = tk.BooleanVar(value=False) 
 
 # Frame for Worklist File Selection
 file_frame = tk.LabelFrame(root, text="1. Worklist File", padx=10, pady=10)
@@ -596,20 +616,27 @@ select_file_button.pack(side=tk.LEFT, padx=(0, 10))
 file_path_label = tk.Label(file_frame, text="ยังไม่ได้เลือกไฟล์ Worklist", wraplength=350, justify="left")
 file_path_label.pack(side=tk.LEFT, fill="x", expand=True)
 
-# Highlighting options frame
-highlight_frame = tk.LabelFrame(root, text="ตัวเลือกการเน้นสี", padx=10, pady=5)
-highlight_frame.pack(pady=5, padx=20, fill="x")
+# Highlighting and Exclusion options frame
+options_frame = tk.LabelFrame(root, text="ตัวเลือกการประมวลผล", padx=10, pady=5)
+options_frame.pack(pady=5, padx=20, fill="x")
 
 # Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
-    highlight_frame, 
-    text="เปิดใช้งานการเน้นสี (คอลัมน์ Activity หากตัวอักษรเกิน 85 ตัว)", # Updated text
+    options_frame, 
+    text="1. เปิดใช้งานการเน้นสี (คอลัมน์ Activity หากตัวอักษรเกิน 85 ตัว)",
     variable=enable_highlight_var
 )
-highlight_check.pack(side=tk.LEFT, anchor="w")
+highlight_check.pack(side=tk.TOP, anchor="w", pady=2) 
+
+# Checkbutton for enabling including strikethrough rows
+strikethrough_check = tk.Checkbutton(
+    options_frame,
+    text="2. ดึง Row ที่มี strikethrough (ไม่ดึงเป็นค่าเริ่มต้น)",
+    variable=include_strikethrough_rows_var
+)
+strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
 
 # Convert to Maximo button (initially disabled until a file is selected)
-# This button is packed last to ensure it's at the bottom.
 convert_button = tk.Button(root, text="Convert to Maximo", command=convert_to_maximo, state=tk.DISABLED)
 convert_button.pack(pady=20)
 
