@@ -2,11 +2,12 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import openpyxl
 from openpyxl.styles import PatternFill, Font, Border, Side, Alignment # Import specific style components
-from openpyxl.styles import Color # Corrected Import: Import Color for defining colors
+from openpyxl.styles import Color # Import Color for defining colors
 from openpyxl.comments import Comment # Import Comment for cell comments
 import os
 import re # Import the regular expression module
 import itertools # Import itertools for grouping
+import sys # Import sys module to detect if running as bundled executable
 
 # Global variable for worklist file path
 worklist_file_path = None
@@ -28,6 +29,21 @@ enable_highlight_var = None # This will be a tk.BooleanVar
 
 # Global variable to store template rows data (including styles and merged cells)
 template_rows_data = []
+
+def get_resource_path(relative_path):
+    """
+    Get the absolute path to resource, works for dev and for PyInstaller.
+    """
+    if getattr(sys, 'frozen', False):
+        # If the application is run as a bundle, the PyInstaller bootloader
+        # extends the sys module by a flag frozen=True and sets the app
+        # path into variable _MEIPASS.
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # If run using Python interpreter
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
 
 def select_excel_file():
     """
@@ -243,9 +259,7 @@ def load_lookup_data():
         'CD_lookup': {}  # For S to L (Col C: Col D in Response file)
     }
 
-    # Construct the path to the response file. Assume it's in the same directory as the script.
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    response_file_path = os.path.join(script_dir, "Respone - Do not Delete.xlsx")
+    response_file_path = get_resource_path("Respone - Do not Delete.xlsx")
 
     if not os.path.exists(response_file_path):
         messagebox.showerror(
@@ -298,8 +312,7 @@ def load_template_rows():
     global template_rows_data
     template_rows_data = [] # Reset template data
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    response_file_path = os.path.join(script_dir, "Respone - Do not Delete.xlsx")
+    response_file_path = get_resource_path("Respone - Do not Delete.xlsx")
 
     if not os.path.exists(response_file_path):
         messagebox.showerror(
@@ -341,14 +354,16 @@ def load_template_rows():
                 # For Comment, recreate object
                 cell_data = {
                     'value': cell.value,
+                    # Recreate PatternFill to avoid StyleProxy errors
                     'fill': PatternFill(start_color=cell.fill.start_color, 
                                         end_color=cell.fill.end_color, 
-                                        fill_type=cell.fill.fill_type) if cell.fill else None, # Recreate PatternFill
+                                        fill_type=cell.fill.fill_type) if cell.fill else None, 
                     'font': cell.font.copy() if cell.font else None,
                     'border': cell.border.copy() if cell.border else None,
                     'alignment': cell.alignment.copy() if cell.alignment else None,
                     'number_format': cell.number_format,
-                    'comment': Comment(cell.comment.text, cell.comment.author) if cell.comment else None # Recreate Comment
+                    # Recreate Comment object
+                    'comment': Comment(cell.comment.text, cell.comment.author) if cell.comment else None 
                 }
                 row_cells_data[cell.column_letter] = cell_data # Store by column letter
             template_rows_data.append(row_cells_data)
@@ -400,7 +415,7 @@ def convert_to_maximo():
 
         new_workbook = openpyxl.Workbook()
         new_sheet = new_workbook.active
-        new_sheet.title = "Sheet1"
+        new_sheet.title = "Maximo Converted Data"
 
         # --- Process G: Copy template rows to the new sheet ---
         # First, handle merged cells from the template
@@ -444,7 +459,7 @@ def convert_to_maximo():
         
         current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
 
-        for source_row_idx in range(5, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
+        for source_row_idx in range(3, source_sheet.max_row + 1): # Changed range back to 3, consistent with processes
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
             data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
@@ -486,8 +501,8 @@ def convert_to_maximo():
                     
                     # Apply highlighting if enabled and condition met
                     if enable_highlight_var.get(): # Check if highlighting is enabled by the user
-                        # Check Column I content for length > 85
-                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 85:
+                        # Check Column I content for length > 100
+                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 100:
                             # Apply highlight to the cell in Column I (ONLY Column I)
                             cell_i_output.fill = highlight_fill
 
@@ -585,7 +600,7 @@ highlight_frame.pack(pady=5, padx=20, fill="x")
 # Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
     highlight_frame, 
-    text="เปิดใช้งานการเน้นสี (คอลัมน์ Acitivity หากตัวอักษรเกิน 85 ตัว)", # Updated text
+    text="เปิดใช้งานการเน้นสี (คอลัมน์ I หากตัวอักษรเกิน 100 ตัว)", # Updated text
     variable=enable_highlight_var
 )
 highlight_check.pack(side=tk.LEFT, anchor="w")
