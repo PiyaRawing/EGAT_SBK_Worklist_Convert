@@ -501,8 +501,8 @@ def convert_to_maximo():
                     
                     # Apply highlighting if enabled and condition met
                     if enable_highlight_var.get(): # Check if highlighting is enabled by the user
-                        # Check Column I content for length > 100
-                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 100:
+                        # Check Column I content for length > 85
+                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 85:
                             # Apply highlight to the cell in Column I (ONLY Column I)
                             cell_i_output.fill = highlight_fill
 
@@ -600,7 +600,7 @@ highlight_frame.pack(pady=5, padx=20, fill="x")
 # Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
     highlight_frame, 
-    text="เปิดใช้งานการเน้นสี (คอลัมน์ I หากตัวอักษรเกิน 100 ตัว)", # Updated text
+    text="เปิดใช้งานการเน้นสี (คอลัมน์ Activity หากตัวอักษรเกิน 85 ตัว)", # Updated text
     variable=enable_highlight_var
 )
 highlight_check.pack(side=tk.LEFT, anchor="w")
