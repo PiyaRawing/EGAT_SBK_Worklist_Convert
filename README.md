@@ -9,24 +9,27 @@
 - Highlight cell ที่เกิน **85** ตัวอักษร (ตามข้ำจำกัดของโปรแกรม Maximo)
 - จัดลำดับ TASK order
 
-## ขั้นตอนก่อนใช้งาน
+## ขั้นตอนก่อนใช้งาน (มี 2 ทางเลือกในการใช้งาน)
+**1. วิธีแบบอาศัย Python**
 
-1. ทำการติดตั้ง Python Version >= 3.9 https://www.python.org/downloads/
+**2. วิธีเปิดแบบ .exe (กรณี IT ขององค์กรอนุญาติให้ใช้ได้) ข้ามไปขั้นตอน 1.3 ได้เลย**
+
+1.1 ทำการติดตั้ง Python Version >= 3.9 https://www.python.org/downloads/
 
 ![image](https://github.com/user-attachments/assets/1f4ea6fd-9728-4a36-8a73-09e5e978a6bc)
 
-2. ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
+1.2 ให้ติดตั้ง libary Python โดยเปิด Command Promt แล้วใช้คำสั่งดังนี้
 
 ```
 pip install openpyxl
 ```
 ![image](https://github.com/user-attachments/assets/c218fdc6-8ede-4434-9ccb-6622f54ed635)
   
-3. Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) https://github.com/PiyaRawing/EGAT_SBK_Worklist_Convert
+1.3 Download File ของโปรแกรมนี้ โดยกดปุ่มสีเขียว (Code) https://github.com/PiyaRawing/EGAT_SBK_Worklist_Convert
 
-4. เลือก Download ZIP
+1.4 เลือก Download ZIP
  
-5. ทำการแตกไฟล์ .zip จะได้ Folder ที่ชื่อว่า EGAT_SBK_Worklist_Convert-main มา
+1.5 ทำการแตกไฟล์ .zip จะได้ Folder ที่ชื่อว่า EGAT_SBK_Worklist_Convert-main มา
 
 ![image](https://github.com/user-attachments/assets/11a4eed2-36da-499b-bfcc-c775408c0d9c)
 
