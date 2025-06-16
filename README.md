@@ -6,7 +6,7 @@
 - แปลง Respone Carft
 - เพิ่ม TYPE ของหน่วยงาน
 - Split Acitivity
-- Highlight cell ที่เกิน 85 ตัวอักษร (ตามข้ำจำกัดของโปรแกรม Maximo)
+- Highlight cell ที่เกิน **85** ตัวอักษร (ตามข้ำจำกัดของโปรแกรม Maximo)
 - จัดลำดับ TASK order
 
 ## ขั้นตอนก่อนใช้งาน
