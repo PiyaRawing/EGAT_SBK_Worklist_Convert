@@ -479,6 +479,7 @@ def convert_to_maximo():
                     continue # Skip this row and move to the next source row
 
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
+            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
             data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
             data_col_j = source_sheet.cell(row=source_row_idx, column=10).value
@@ -501,6 +502,7 @@ def convert_to_maximo():
                     # Write values to the current row in the new sheet
                     new_sheet.cell(row=current_output_row_idx, column=4).value = data_col_b # Col D
                     new_sheet.cell(row=current_output_row_idx, column=5).value = data_col_f # Col E
+                    new_sheet.cell(row=current_output_row_idx, column=21).value = data_col_i # Col i type ex 6e 6m
                     
                     # Store Column I cell object to check its length for highlighting later
                     cell_i_output = new_sheet.cell(row=current_output_row_idx, column=9)
@@ -528,6 +530,7 @@ def convert_to_maximo():
                     # Convert None to empty string for sorting comparison
                     rows_for_f_process.append((
                         (str(data_col_b) if data_col_b is not None else "",
+                         str(data_col_i) if data_col_i is not None else "",
                          str(data_col_f) if data_col_f is not None else "",
                          str(j_part_item) if j_part_item is not None else ""), # Grouping key: (D, E, J) tuple
                         current_output_row_idx # The row index in the new sheet where this data was written
