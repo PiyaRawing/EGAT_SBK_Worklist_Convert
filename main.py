@@ -586,8 +586,10 @@ def convert_to_maximo():
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Excel Worklist Converter")
-root.geometry("550x350") # Adjust height for the new options arrangement
+root.geometry("720x480") # Adjust height for the new options arrangement
 root.resizable(False, False) # Prevent window resizing
+root.iconbitmap("./transfer.ico")
+root.option_add("*font", "Tahoma 14")
 
 # Variable to store the selected file path (initialized to None)
 worklist_file_path = None
@@ -620,14 +622,15 @@ file_path_label = tk.Label(file_frame, text="ยังไม่ได้เล�
 file_path_label.pack(side=tk.LEFT, fill="x", expand=True)
 
 # Highlighting and Exclusion options frame
-options_frame = tk.LabelFrame(root, text="ตัวเลือกการประมวลผล", padx=10, pady=5)
+options_frame = tk.LabelFrame(root, text="ตัวเลือกผลลัพธ์", padx=10, pady=5)
 options_frame.pack(pady=5, padx=20, fill="x")
 
 # Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
     options_frame, 
-    text="1. เปิดใช้งานการเน้นสี (คอลัมน์ Activity หากตัวอักษรเกิน 85 ตัว)",
-    variable=enable_highlight_var
+    text="1. เปิดใช้งานการเน้นสี (Column Activity หากตัวอักษรเกิน 85 ตัว)",
+    variable=enable_highlight_var,
+    bg="orange"
 )
 highlight_check.pack(side=tk.TOP, anchor="w", pady=2) 
 
