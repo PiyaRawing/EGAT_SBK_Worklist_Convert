@@ -135,7 +135,7 @@ def select_excel_file():
 
 def split_j_column_data(text_data):
     """
-    Splits text data from Column J based on '.-' or '. ' delimiters.
+    Splits text data from Column J based on '.-', '. ', ',', or '/' delimiters.
     Ensures each split part ends with a dot if it represents a meaningful segment.
     Handles leading/trailing pipe characters and re-adds them to split parts.
     """
@@ -145,12 +145,14 @@ def split_j_column_data(text_data):
     original_had_pipes = text_data.startswith('|') and text_data.endswith('|')
     clean_text = text_data.strip('|') # Remove outer pipes for clean splitting
 
-    # Replace ".-" with a unique temporary delimiter for splitting
-    # Then replace ". " with the same unique temporary delimiter
-    # This ensures that ".-" is prioritized over ". " if both are present in sequence.
-    # And it simplifies splitting to a single delimiter.
+    # Define the delimiters and a unique temporary delimiter for splitting
+    delimiters = [".-", ". ", ",", "/"]
     temp_delimiter = "###SPLIT_POINT###"
-    processed_text = clean_text.replace(".-", temp_delimiter).replace(". ", temp_delimiter)
+
+    processed_text = clean_text
+    # Replace all specified delimiters with the unique temporary delimiter
+    for delim in delimiters:
+        processed_text = processed_text.replace(delim, temp_delimiter)
     
     # Split by the temporary delimiter
     # filter out any empty strings that might result from multiple delimiters next to each other
@@ -159,19 +161,24 @@ def split_j_column_data(text_data):
     parts = []
     for part in raw_parts:
         if part: # Ensure part is not empty
+            # Only add a dot if the part doesn't end with a dot, and it's not just a number (e.g., "123")
+            # This logic can be adjusted if numbers should also end with a dot in specific cases.
             if not part.endswith('.'):
                 parts.append(part + '.')
             else:
                 parts.append(part)
     
     if not parts:
-        return [None] # If no parts were found after splitting and processing
+        # If no parts were found after splitting and processing, return a list with None
+        # This handles cases where input was an empty string or only delimiters
+        return [None] if clean_text.strip() else [None]
 
     # Re-add pipes if the original string had them, to each split part
     if original_had_pipes:
         parts = [f"|{p}|" for p in parts]
 
     return parts
+
 
 def split_i_column_data(text_data):
     """
