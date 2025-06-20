@@ -28,6 +28,8 @@ sheet_option_menu = None
 enable_highlight_var = None # This will be a tk.BooleanVar
 # Global variable for the option to include (not skip) rows with strikethrough
 include_strikethrough_rows_var = None # This will be a tk.BooleanVar
+# Global variable for the sorting option state
+enable_sort_var = None # NEW: For sorting D and E
 
 # Global variable to store template rows data (including styles and merged cells)
 template_rows_data = []
@@ -420,11 +422,13 @@ def convert_to_maximo():
     The user is prompted to choose the save location for the new file.
     
     New Feature: Option to include/exclude rows with strikethrough formatting.
+    New Feature: Option to sort by Column D and then Column E.
     """
-    global selected_sheet_name # Ensure selected_sheet_name is accessible
-    global enable_highlight_var # Ensure enable_highlight_var is accessible
-    global include_strikethrough_rows_var # Ensure new strikethrough variable is accessible
-    global status_label # Ensure status_label is accessible
+    global selected_sheet_name
+    global enable_highlight_var
+    global include_strikethrough_rows_var
+    global enable_sort_var # NEW: Access the sorting option
+    global status_label
 
     if not worklist_file_path:
         messagebox.showwarning("คำเตือน", "กรุณาเลือกไฟล์ Worklist ก่อนดำเนินการ!")
@@ -491,11 +495,12 @@ def convert_to_maximo():
         # Define a fill style for highlighting (color #ff9e00)
         highlight_fill = PatternFill(start_color='FF9E00', end_color='FF9E00', fill_type='solid')
         
-        # This list will store tuples of ((D,E,J) values, row_index_in_new_sheet)
-        # to facilitate grouping and counting for Process F.
-        rows_for_f_process = [] 
+        # This list will store all processed row data before writing to new_sheet
+        # This is modified to hold all necessary values for sorting and later writing.
+        # Format: [ (D_value, E_value, I_value, J_value, K_value, S_value, Original_B, Original_F, Original_I_Worklist, Original_H_For_I), ... ]
+        all_processed_rows_data = [] 
         
-        current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
+        # current_output_row_idx = 3 # This keeps track of the next available row in the new sheet (not used immediately for writing now)
 
         for source_row_idx in range(5, source_sheet.max_row + 1):
             # Update status label with current processing row
@@ -519,12 +524,13 @@ def convert_to_maximo():
                     continue # Skip this row and move to the next source row
 
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
-            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value
+            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value # Original Column I from Worklist (for Col E)
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
-            data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
+            data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value # Original Column H from Worklist (for Col I after splitting)
             data_col_j = source_sheet.cell(row=source_row_idx, column=10).value
+
             # Process A addition: Get data from Worklist Column I for output Column S (initial value)
-            data_col_i_worklist = source_sheet.cell(row=source_row_idx, column=9).value # Column I is index 9 in source
+            data_col_i_worklist_for_s = source_sheet.cell(row=source_row_idx, column=9).value # Column I is index 9 in source
 
             j_parts = split_j_column_data(data_col_j)
             i_parts = split_i_column_data(data_col_h_for_i)
@@ -535,48 +541,75 @@ def convert_to_maximo():
                 vlookup_result_k = response_lookup_data['AB_lookup'].get(lookup_key_k, None)
 
                 # Process E - Second VLOOKUP for Column S (using Worklist I data -> now in Col S)
-                lookup_key_s = str(data_col_i_worklist).strip() if data_col_i_worklist is not None else ""
+                lookup_key_s = str(data_col_i_worklist_for_s).strip() if data_col_i_worklist_for_s is not None else ""
                 vlookup_result_s = response_lookup_data['CD_lookup'].get(lookup_key_s, None)
+                
+                final_s_value = vlookup_result_s if vlookup_result_s is not None else data_col_i_worklist_for_s
+
 
                 for i_part_item in i_parts:
-                    # Write values to the current row in the new sheet
-                    new_sheet.cell(row=current_output_row_idx, column=4).value = data_col_b # Col D
-                    new_sheet.cell(row=current_output_row_idx, column=5).value = data_col_f # Col E
-                    new_sheet.cell(row=current_output_row_idx, column=21).value = data_col_i # Col i type ex 6e 6m
-                    
-                    # Store Column I cell object to check its length for highlighting later
-                    cell_i_output = new_sheet.cell(row=current_output_row_idx, column=9)
-                    cell_i_output.value = i_part_item # Col I
-
-                    new_sheet.cell(row=current_output_row_idx, column=10).value = j_part_item # Col J
-                    new_sheet.cell(row=current_output_row_idx, column=11).value = vlookup_result_k # Col K
-                    
-                    # Write original Worklist I data to Column S (Index 19) initially
-                    # If VLOOKUP result for Column S is not None, overwrite Column S with the result
-                    cell_s_output = new_sheet.cell(row=current_output_row_idx, column=19)
-                    if vlookup_result_s is not None:
-                        cell_s_output.value = vlookup_result_s # Overwrite Col S with VLOOKUP result
-                    else:
-                        cell_s_output.value = data_col_i_worklist # Keep original if no lookup match
-                    
-                    # Apply highlighting if enabled and condition met
-                    if enable_highlight_var.get(): # Check if highlighting is enabled by the user
-                        # Check Column I content for length > 85
-                        if isinstance(cell_i_output.value, str) and len(cell_i_output.value) > 85:
-                            # Apply highlight to the cell in Column I (ONLY Column I)
-                            cell_i_output.fill = highlight_fill
-
-                    # Store (D, E, J) values and their corresponding row index in the new sheet
-                    # Convert None to empty string for sorting comparison
-                    rows_for_f_process.append((
-                        (str(data_col_b) if data_col_b is not None else "",
-                         str(data_col_i) if data_col_i is not None else "",
-                         str(data_col_f) if data_col_f is not None else "",
-                         str(j_part_item) if j_part_item is not None else ""), # Grouping key: (D, E, J) tuple
-                        current_output_row_idx # The row index in the new sheet where this data was written
+                    # Store all relevant data for this generated row
+                    # We store the *intended* output values for D, E, I, J, K, S
+                    # and the original source values if needed for other processes like grouping.
+                    all_processed_rows_data.append((
+                        data_col_b,       # Will be written to Column D
+                        data_col_f,       # Will be written to Column E
+                        i_part_item,      # Will be written to Column I
+                        j_part_item,      # Will be written to Column J
+                        vlookup_result_k, # Will be written to Column K
+                        final_s_value,    # Will be written to Column S
+                        data_col_i        # Original Col I from Worklist for output Col V
                     ))
-                    
-                    current_output_row_idx += 1 # Move to the next row for the new sheet
+        
+        # --- NEW: Process H: Conditional Sorting by Column D then Column E ---
+        if enable_sort_var.get(): # Check if sorting is enabled
+            # Sort the collected data: primary key is D (index 0), secondary key is E (index 1)
+            # Use a lambda function for string conversion for robust sorting (handles None and numbers)
+            all_processed_rows_data.sort(key=lambda x: (str(x[0] or ''), str(x[1] or '')))
+            
+        # Now, write the sorted (or unsorted if option off) data to the new sheet
+        rows_for_f_process = [] # Reset for Process F after potential sorting
+        current_output_row_idx = 3 # Start writing from row 3
+
+        for row_data in all_processed_rows_data:
+            data_col_d = row_data[0]
+            data_col_e = row_data[1]
+            data_col_i_output = row_data[2]
+            data_col_j_output = row_data[3]
+            data_col_k_output = row_data[4]
+            data_col_s_output = row_data[5]
+            data_col_v_output = row_data[6] # Original Col I from Worklist for Col V
+
+            new_sheet.cell(row=current_output_row_idx, column=4).value = data_col_d # Col D
+            new_sheet.cell(row=current_output_row_idx, column=5).value = data_col_e # Col E
+            
+            # Store Column I cell object to check its length for highlighting later
+            cell_i_output_target = new_sheet.cell(row=current_output_row_idx, column=9)
+            cell_i_output_target.value = data_col_i_output # Col I
+
+            new_sheet.cell(row=current_output_row_idx, column=10).value = data_col_j_output # Col J
+            new_sheet.cell(row=current_output_row_idx, column=11).value = data_col_k_output # Col K
+            new_sheet.cell(row=current_output_row_idx, column=19).value = data_col_s_output # Col S
+            new_sheet.cell(row=current_output_row_idx, column=22).value = data_col_v_output # Col V (Worklist Col I is written here)
+
+            # Apply highlighting if enabled and condition met
+            if enable_highlight_var.get(): # Check if highlighting is enabled by the user
+                # Check Column I content for length > 85
+                if isinstance(cell_i_output_target.value, str) and len(cell_i_output_target.value) > 85:
+                    # Apply highlight to the cell in Column I (ONLY Column I)
+                    cell_i_output_target.fill = highlight_fill
+
+            # Store (D, E, J) values and their corresponding row index in the new sheet
+            # Convert None to empty string for sorting comparison
+            rows_for_f_process.append((
+                (str(data_col_d) if data_col_d is not None else "",
+                 str(data_col_e) if data_col_e is not None else "", # Col E is already the processed Worklist Col F
+                 str(data_col_j_output) if data_col_j_output is not None else ""), # Grouping key: (D, E, J) tuple
+                current_output_row_idx # The row index in the new sheet where this data was written
+            ))
+            
+            current_output_row_idx += 1 # Move to the next row for the new sheet
+
 
         # --- Process F: Counting in Column G and H based on D, E, J groups ---
         
@@ -630,7 +663,7 @@ def convert_to_maximo():
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Excel Worklist Converter")
-root.geometry("720x520") # Adjusted height to accommodate the status label
+root.geometry("720x550") # Adjusted height to accommodate the status label and new option
 root.resizable(False, False) # Prevent window resizing
 root.iconbitmap("./transfer.ico")
 root.option_add("*font", "Tahoma 14")
@@ -652,6 +685,8 @@ sheet_option_menu = None
 enable_highlight_var = tk.BooleanVar(value=False) # Default to false (not highlighted)
 # Initialize the BooleanVar for including strikethrough rows (default to false, meaning skip them)
 include_strikethrough_rows_var = tk.BooleanVar(value=False) 
+# Initialize the BooleanVar for sorting (default to false, meaning no sort)
+enable_sort_var = tk.BooleanVar(value=False) # NEW: Default to no sorting
 
 # Frame for Worklist File Selection
 file_frame = tk.LabelFrame(root, text="1. Worklist File", padx=10, pady=10)
@@ -685,6 +720,14 @@ strikethrough_check = tk.Checkbutton(
     variable=include_strikethrough_rows_var
 )
 strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
+
+# NEW: Checkbutton for enabling sorting by D and E
+sort_check = tk.Checkbutton(
+    options_frame,
+    text="3. เรียงลำดับข้อมูล A-Z ตาม Column D และ Column E",
+    variable=enable_sort_var
+)
+sort_check.pack(side=tk.TOP, anchor="w", pady=2)
 
 # Convert to Maximo button (initially disabled until a file is selected)
 convert_button = tk.Button(root, text="Convert to Maximo", command=run_conversion_process, state=tk.DISABLED)
