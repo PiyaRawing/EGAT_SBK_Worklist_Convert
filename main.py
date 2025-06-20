@@ -32,6 +32,9 @@ include_strikethrough_rows_var = None # This will be a tk.BooleanVar
 # Global variable to store template rows data (including styles and merged cells)
 template_rows_data = []
 
+# Global variable for the status label
+status_label = None
+
 def get_resource_path(relative_path):
     """
     Get the absolute path to resource, works for dev and for PyInstaller.
@@ -383,6 +386,27 @@ def load_template_rows():
         )
         return False
 
+def run_conversion_process():
+    """
+    Wrapper function to handle UI state before and after conversion.
+    """
+    global status_label
+
+    # Disable button and show initial processing message
+    convert_button.config(state=tk.DISABLED)
+    status_label.config(text="กำลังแปลงข้อมูล... โปรดรอสักครู่")
+    root.update_idletasks() # Update the GUI immediately
+
+    try:
+        convert_to_maximo()
+    finally:
+        # Re-enable button
+        convert_button.config(state=tk.NORMAL)
+        # Status label will be updated by convert_to_maximo in case of success/failure
+        # If it was cancelled by user, it's already set there.
+        root.update_idletasks()
+
+
 def convert_to_maximo():
     """
     Reads data from specified columns (B, F, H, I, J) starting from Row 3 of the
@@ -400,21 +424,26 @@ def convert_to_maximo():
     global selected_sheet_name # Ensure selected_sheet_name is accessible
     global enable_highlight_var # Ensure enable_highlight_var is accessible
     global include_strikethrough_rows_var # Ensure new strikethrough variable is accessible
+    global status_label # Ensure status_label is accessible
 
     if not worklist_file_path:
         messagebox.showwarning("คำเตือน", "กรุณาเลือกไฟล์ Worklist ก่อนดำเนินการ!")
+        status_label.config(text="โปรดเลือกไฟล์ Worklist")
         return
     
     if not selected_sheet_name or not selected_sheet_name.get():
         messagebox.showwarning("คำเตือน", "กรุณาเลือกชีทที่จะแปลงข้อมูล!")
+        status_label.config(text="โปรดเลือกชีท")
         return
 
     # Try to load lookup data first
     if not load_lookup_data():
+        status_label.config(text="ข้อผิดพลาดในการโหลด VLOOKUP Data")
         return # Stop if lookup data cannot be loaded
 
     # Try to load template rows for Process G
     if not load_template_rows():
+        status_label.config(text="ข้อผิดพลาดในการโหลด Template Data")
         return # Stop if template rows cannot be loaded
 
     try:
@@ -434,7 +463,6 @@ def convert_to_maximo():
                 try:
                     new_sheet.merge_cells(merged_range_str)
                 except Exception as merge_err:
-                    # Log warning if merge fails (e.g., invalid range, already merged)
                     print(f"Warning: Could not merge cells {merged_range_str}: {merge_err}") 
         
         # Then, copy cell data for the first two rows
@@ -470,6 +498,10 @@ def convert_to_maximo():
         current_output_row_idx = 3 # This keeps track of the next available row in the new sheet
 
         for source_row_idx in range(5, source_sheet.max_row + 1):
+            # Update status label with current processing row
+            status_label.config(text=f"กำลังแปลงข้อมูล... (กำลังประมวลผลแถวที่ {source_row_idx})")
+            root.update_idletasks() # Force GUI update
+
             # --- Strikethrough Check (Conditional Skip) ---
             # If 'include_strikethrough_rows_var' is False (default: skip strikethrough rows),
             # then check for strikethrough and skip the row if found.
@@ -482,7 +514,8 @@ def convert_to_maximo():
                         break # Found strikethrough, no need to check other cells in this row
                 
                 if skip_row_due_to_strikethrough:
-                    print(f"Skipping row {source_row_idx} due to strikethrough (option to include is OFF).")
+                    # You can add a more detailed message here if needed, or just let it skip silently.
+                    # For now, keeping the status update simple.
                     continue # Skip this row and move to the next source row
 
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
@@ -574,6 +607,7 @@ def convert_to_maximo():
 
         if not output_file_path: # If the user clicks Cancel in the save dialog
             messagebox.showinfo("ยกเลิก", "การบันทึกไฟล์ถูกยกเลิก")
+            status_label.config(text="การแปลงข้อมูลถูกยกเลิก")
             return
 
         # Save the new workbook to the chosen path
@@ -583,17 +617,20 @@ def convert_to_maximo():
             "สำเร็จ",
             f"การแปลงข้อมูลเสร็จสมบูรณ์ และบันทึกเป็นไฟล์ใหม่แล้วที่:\n{output_file_path}"
         )
+        status_label.config(text="การแปลงข้อมูลเสร็จสมบูรณ์")
 
     except FileNotFoundError:
         messagebox.showerror("ข้อผิดพลาด", "ไม่พบไฟล์ Worklist ที่ระบุ กรุณาตรวจสอบเส้นทางไฟล์")
+        status_label.config(text="เกิดข้อผิดพลาด: ไม่พบไฟล์")
     except Exception as e:
         messagebox.showerror("เกิดข้อผิดพลาด", f"เกิดข้อผิดพลาดในการประมวลผลไฟล์: {e}\n"
                                                f"โปรดตรวจสอบว่าไฟล์ Excel ไม่ได้ถูกเปิดอยู่")
+        status_label.config(text=f"เกิดข้อผิดพลาด: {e}")
 
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Excel Worklist Converter")
-root.geometry("720x480") # Adjust height for the new options arrangement
+root.geometry("720x520") # Adjusted height to accommodate the status label
 root.resizable(False, False) # Prevent window resizing
 root.iconbitmap("./transfer.ico")
 root.option_add("*font", "Tahoma 14")
@@ -650,13 +687,17 @@ strikethrough_check = tk.Checkbutton(
 strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
 
 # Convert to Maximo button (initially disabled until a file is selected)
-convert_button = tk.Button(root, text="Convert to Maximo", command=convert_to_maximo, state=tk.DISABLED)
+convert_button = tk.Button(root, text="Convert to Maximo", command=run_conversion_process, state=tk.DISABLED)
 convert_button.pack(pady=20)
+
+# Status label to show processing messages
+status_label = tk.Label(root, text="", fg="blue", font=("Tahoma", 12))
+status_label.pack(pady=5)
 
 # Label for the update information at the bottom right
 update_info_label = tk.Label(
     root,
-    text="อัปเดตล่าสุด : 20/6/2568 โดย นศ.ฝึกงาน ปิยะ ระวิงทอง",
+    text="อัปเดตล่าสุด 20/6/2568 โดย นศ.ฝึกงาน ปิยะ",
     font=("Tahoma", 10), # Smaller font size for this info
     fg="gray" # Gray color for less prominence
 )
