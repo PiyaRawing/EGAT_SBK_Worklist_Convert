@@ -1,13 +1,13 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import openpyxl
-from openpyxl.styles import PatternFill, Font, Border, Side, Alignment # Import specific style components
-from openpyxl.styles import Color # Import Color for defining colors
-from openpyxl.comments import Comment # Import Comment for cell comments
+from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
+from openpyxl.styles import Color
+from openpyxl.comments import Comment
 import os
-import re # Import the regular expression module
-import itertools # Import itertools for grouping
-import sys # Import sys module to detect if running as bundled executable
+import re
+import itertools
+import sys
 
 # Global variable for worklist file path
 worklist_file_path = None
@@ -18,18 +18,18 @@ response_lookup_data = {
 }
 
 # Global variable for the selected sheet name
-selected_sheet_name = None # This will be a tk.StringVar
+selected_sheet_name = None
 
 # Global variable for the sheet selection UI elements
 sheet_selection_frame = None
 sheet_option_menu = None
 
 # Global variable for the highlighting option state
-enable_highlight_var = None # This will be a tk.BooleanVar
+enable_highlight_var = None
 # Global variable for the option to include (not skip) rows with strikethrough
-include_strikethrough_rows_var = None # This will be a tk.BooleanVar
+include_strikethrough_rows_var = None
 # Global variable for the sorting option state
-enable_sort_var = None # NEW: For sorting D and E
+enable_sort_var = None # For sorting D, E, K
 
 # Global variable to store template rows data (including styles and merged cells)
 template_rows_data = []
@@ -42,12 +42,8 @@ def get_resource_path(relative_path):
     Get the absolute path to resource, works for dev and for PyInstaller.
     """
     if getattr(sys, 'frozen', False):
-        # If the application is run as a bundle, the PyInstaller bootloader
-        # extends the sys module by a flag frozen=True and sets the app
-        # path into variable _MEIPASS.
         base_path = os.path.dirname(sys.executable)
     else:
-        # If run using Python interpreter
         base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
@@ -66,41 +62,34 @@ def select_excel_file():
     )
 
     if new_worklist_file_path:
-        worklist_file_path = new_worklist_file_path # Update global path
+        worklist_file_path = new_worklist_file_path
 
-        # Display only the base name of the selected file
         file_path_label.config(text=f"ไฟล์ Worklist: {os.path.basename(worklist_file_path)}")
 
         try:
-            # Load the workbook to get sheet names.
-            # We need to load in read-write mode to check for strikethrough later.
-            temp_workbook = openpyxl.load_workbook(worklist_file_path) 
+            temp_workbook = openpyxl.load_workbook(worklist_file_path)
             sheet_names = temp_workbook.sheetnames
             
-            # Attempt to get the active sheet's title. If it fails, default to the first sheet.
             active_sheet_title = None
             try:
                 active_sheet_title = temp_workbook.active.title
             except Exception:
-                pass # Ignore error if cannot determine active sheet
+                pass
 
-            temp_workbook.close() # Close the workbook immediately
+            temp_workbook.close()
 
             if not sheet_names:
                 messagebox.showwarning("คำเตือน", "ไฟล์ Excel ที่เลือกไม่มีชีท!")
                 file_path_label.config(text="ยังไม่ได้เลือกไฟล์ Worklist")
                 convert_button.config(state=tk.DISABLED)
-                # Destroy existing sheet selection elements if any
                 if sheet_selection_frame:
                     sheet_selection_frame.destroy()
                     sheet_selection_frame = None
                 return
 
-            # If sheet selection frame already exists, destroy it to recreate
             if sheet_selection_frame:
                 sheet_selection_frame.destroy()
 
-            # Create or recreate the frame for sheet selection
             sheet_selection_frame = tk.LabelFrame(root, text="2. เลือกชีท", padx=10, pady=10)
             sheet_selection_frame.pack(pady=5, padx=20, fill="x")
 
@@ -108,16 +97,15 @@ def select_excel_file():
             sheet_label.pack(side=tk.LEFT, padx=(0, 10))
 
             selected_sheet_name = tk.StringVar(root)
-            # Set initial value to the active sheet title or the first sheet name
             if active_sheet_title and active_sheet_title in sheet_names:
                 selected_sheet_name.set(active_sheet_title)
             else:
-                selected_sheet_name.set(sheet_names[0]) # Fallback to first sheet name
+                selected_sheet_name.set(sheet_names[0])
 
             sheet_option_menu = tk.OptionMenu(sheet_selection_frame, selected_sheet_name, *sheet_names)
             sheet_option_menu.pack(side=tk.LEFT, fill="x", expand=True)
             
-            convert_button.config(state=tk.NORMAL) # Enable Convert button after file and sheet are ready
+            convert_button.config(state=tk.NORMAL)
 
         except Exception as e:
             messagebox.showerror("ข้อผิดพลาด", f"ไม่สามารถอ่านไฟล์ Excel ได้: {e}\n"
@@ -127,15 +115,15 @@ def select_excel_file():
             if sheet_selection_frame:
                 sheet_selection_frame.destroy()
                 sheet_selection_frame = None
-            worklist_file_path = None # Reset path on error
+            worklist_file_path = None
 
-    else: # User cancelled file selection
+    else:
         file_path_label.config(text="ยังไม่ได้เลือกไฟล์ Worklist")
         convert_button.config(state=tk.DISABLED)
         if sheet_selection_frame:
             sheet_selection_frame.destroy()
             sheet_selection_frame = None
-        worklist_file_path = None # Reset path
+        worklist_file_path = None
 
 
 def split_j_column_data(text_data):
@@ -145,40 +133,31 @@ def split_j_column_data(text_data):
     Handles leading/trailing pipe characters and re-adds them to split parts.
     """
     if not isinstance(text_data, str):
-        return [text_data] # If not a string, return as is in a list (e.g., None, numbers)
+        return [text_data]
 
     original_had_pipes = text_data.startswith('|') and text_data.endswith('|')
-    clean_text = text_data.strip('|') # Remove outer pipes for clean splitting
+    clean_text = text_data.strip('|')
 
-    # Define the delimiters and a unique temporary delimiter for splitting
     delimiters = [".-", ". ", ",", "/"]
     temp_delimiter = "###SPLIT_POINT###"
 
     processed_text = clean_text
-    # Replace all specified delimiters with the unique temporary delimiter
     for delim in delimiters:
         processed_text = processed_text.replace(delim, temp_delimiter)
     
-    # Split by the temporary delimiter
-    # filter out any empty strings that might result from multiple delimiters next to each other
     raw_parts = [p.strip() for p in processed_text.split(temp_delimiter) if p.strip()]
 
     parts = []
     for part in raw_parts:
-        if part: # Ensure part is not empty
-            # Only add a dot if the part doesn't end with a dot, and it's not just a number (e.g., "123")
-            # This logic can be adjusted if numbers should also end with a dot in specific cases.
+        if part:
             if not part.endswith('.'):
                 parts.append(part + '.')
             else:
                 parts.append(part)
     
     if not parts:
-        # If no parts were found after splitting and processing, return a list with None
-        # This handles cases where input was an empty string or only delimiters
         return [None] if clean_text.strip() else [None]
 
-    # Re-add pipes if the original string had them, to each split part
     if original_had_pipes:
         parts = [f"|{p}|" for p in parts]
 
@@ -193,20 +172,18 @@ def split_i_column_data(text_data):
     Also implements Process D: Removes '/.', '/', '.', or '\' if found at the end of each part.
     """
     if not isinstance(text_data, str):
-        return [text_data] # If not a string, return as is in a list (e.g., None, numbers)
+        return [text_data]
 
     original_had_pipes = text_data.startswith('|') and text_data.endswith('|')
-    clean_text = text_data.strip('|') # Remove outer pipes for clean processing
+    clean_text = text_data.strip('|')
 
     items = []
-    # First, find all valid split points (N. patterns outside parentheses)
-    valid_split_indices = [0] # Always start with the beginning of the string
+    valid_split_indices = [0]
 
     paren_level = 0
     for m in re.finditer(r'\d+\.', clean_text):
         match_start = m.start()
         
-        # Check parenthesis level at the start of the current match
         current_paren_level = 0
         for char_idx in range(match_start):
             if clean_text[char_idx] == '(':
@@ -214,26 +191,23 @@ def split_i_column_data(text_data):
             elif clean_text[char_idx] == ')':
                 current_paren_level -= 1
 
-        if current_paren_level == 0: # If N. is outside parentheses, it's a valid split point
+        if current_paren_level == 0:
             if match_start not in valid_split_indices:
                 valid_split_indices.append(match_start)
     
-    # Sort and remove duplicates
     valid_split_indices = sorted(list(set(valid_split_indices)))
     
-    # Extract segments based on these valid split indices
     for k in range(len(valid_split_indices)):
         start_idx = valid_split_indices[k]
         end_idx = valid_split_indices[k+1] if k+1 < len(valid_split_indices) else len(clean_text)
         
         segment = clean_text[start_idx:end_idx].strip()
-        if segment: # Only add non-empty segments
+        if segment:
             items.append(segment)
     
     if not items:
         return [None]
 
-    # --- Apply Process D: Remove '/.', '/', '.', or '\' if found at the end of each part ---
     processed_parts = []
     for part in items:
         if isinstance(part, str):
@@ -251,7 +225,6 @@ def split_i_column_data(text_data):
     if not processed_parts:
         return [None]
 
-    # Re-add pipes if the original string had them, to each split part
     if original_had_pipes:
         processed_parts = [f"|{p}|" for p in processed_parts]
 
@@ -264,10 +237,9 @@ def load_lookup_data():
     Specifically loads from the 'Respone' sheet.
     """
     global response_lookup_data
-    # Initialize lookup data structure to hold two separate lookup dictionaries
     response_lookup_data = {
-        'AB_lookup': {}, # For J to K (Col A: Col B in Response file)
-        'CD_lookup': {}  # For S to L (Col C: Col D in Response file)
+        'AB_lookup': {},
+        'CD_lookup': {}
     }
 
     response_file_path = get_resource_path("Respone - Do not Delete.xlsx")
@@ -278,11 +250,10 @@ def load_lookup_data():
             f"ไม่พบไฟล์ VLOOKUP: '{response_file_path}'\n"
             "กรุณาตรวจสอบว่าไฟล์ 'Respone - Do not Delete.xlsx' อยู่ในโฟลเดอร์เดียวกับโปรแกรม"
         )
-        return False # Indicate failure to load
+        return False
 
     try:
         lookup_workbook = openpyxl.load_workbook(response_file_path)
-        # Explicitly select the 'Respone' sheet
         if 'Respone' in lookup_workbook.sheetnames:
             lookup_sheet = lookup_workbook['Respone']
         else:
@@ -293,27 +264,23 @@ def load_lookup_data():
             )
             return False
 
-        # Iterate through rows, assuming data starts from row 1.
-        # Column A is index 1, Column B is index 2. Column C is index 3, Column D is index 4.
         for row_idx in range(1, lookup_sheet.max_row + 1):
-            # Load for J to K lookup (A:B)
             key_ab = lookup_sheet.cell(row=row_idx, column=1).value
             value_ab = lookup_sheet.cell(row=row_idx, column=2).value
             if key_ab is not None:
                 response_lookup_data['AB_lookup'][str(key_ab).strip()] = value_ab
 
-            # Load for S to L lookup (C:D)
-            key_cd = lookup_sheet.cell(row=row_idx, column=3).value # Column C is index 3
-            value_cd = lookup_sheet.cell(row=row_idx, column=4).value # Column D is index 4
+            key_cd = lookup_sheet.cell(row=row_idx, column=3).value
+            value_cd = lookup_sheet.cell(row=row_idx, column=4).value
             if key_cd is not None:
                 response_lookup_data['CD_lookup'][str(key_cd).strip()] = value_cd
-        return True # Indicate successful load
+        return True
     except Exception as e:
         messagebox.showerror(
             "ข้อผิดพลาดในการโหลดไฟล์ VLOOKUP",
             f"เกิดข้อผิดพลาดขณะโหลดไฟล์ 'Respone - Do not Delete.xlsx': {e}"
         )
-        return False # Indicate failure to load
+        return False
 
 def load_template_rows():
     """
@@ -321,7 +288,7 @@ def load_template_rows():
     from the 'Template' sheet of 'Respone - Do not Delete.xlsx'.
     """
     global template_rows_data
-    template_rows_data = [] # Reset template data
+    template_rows_data = []
 
     response_file_path = get_resource_path("Respone - Do not Delete.xlsx")
 
@@ -345,27 +312,19 @@ def load_template_rows():
             )
             return False
 
-        # Store merged cell ranges from the template sheet
         merged_cells_ranges_from_template = []
         for merged_range in template_sheet.merged_cells.ranges:
             merged_cells_ranges_from_template.append(str(merged_range)) 
         
-        # Add a placeholder for merged ranges. The first item in template_rows_data
-        # will now be this list of merged ranges.
         template_rows_data.append(merged_cells_ranges_from_template)
 
-        # Read cell data for the first two rows (1-based indexing in openpyxl)
-        for r_idx in range(1, 3): # Rows 1 and 2 of the template
+        for r_idx in range(1, 3):
             row_cells_data = {}
-            # Iterate through columns up to the max_column of the template sheet
             for c_idx in range(1, template_sheet.max_column + 1): 
                 cell = template_sheet.cell(row=r_idx, column=c_idx)
                 
-                # Copy cell attributes: For styles, recreate objects to avoid StyleProxy issues
-                # For Comment, recreate object
                 cell_data = {
                     'value': cell.value,
-                    # Recreate PatternFill to avoid StyleProxy errors
                     'fill': PatternFill(start_color=cell.fill.start_color, 
                                         end_color=cell.fill.end_color, 
                                         fill_type=cell.fill.fill_type) if cell.fill else None, 
@@ -373,13 +332,12 @@ def load_template_rows():
                     'border': cell.border.copy() if cell.border else None,
                     'alignment': cell.alignment.copy() if cell.alignment else None,
                     'number_format': cell.number_format,
-                    # Recreate Comment object
                     'comment': Comment(cell.comment.text, cell.comment.author) if cell.comment else None 
                 }
-                row_cells_data[cell.column_letter] = cell_data # Store by column letter
+                row_cells_data[cell.column_letter] = cell_data
             template_rows_data.append(row_cells_data)
         
-        template_workbook.close() # Close the workbook
+        template_workbook.close()
         return True
     except Exception as e:
         messagebox.showerror(
@@ -394,18 +352,14 @@ def run_conversion_process():
     """
     global status_label
 
-    # Disable button and show initial processing message
     convert_button.config(state=tk.DISABLED)
     status_label.config(text="กำลังแปลงข้อมูล... โปรดรอสักครู่")
-    root.update_idletasks() # Update the GUI immediately
+    root.update_idletasks()
 
     try:
         convert_to_maximo()
     finally:
-        # Re-enable button
         convert_button.config(state=tk.NORMAL)
-        # Status label will be updated by convert_to_maximo in case of success/failure
-        # If it was cancelled by user, it's already set there.
         root.update_idletasks()
 
 
@@ -422,12 +376,12 @@ def convert_to_maximo():
     The user is prompted to choose the save location for the new file.
     
     New Feature: Option to include/exclude rows with strikethrough formatting.
-    New Feature: Option to sort by Column D and then Column E.
+    New Feature: Option to sort by Column D, then Column E, then Column K.
     """
     global selected_sheet_name
     global enable_highlight_var
     global include_strikethrough_rows_var
-    global enable_sort_var # NEW: Access the sorting option
+    global enable_sort_var
     global status_label
 
     if not worklist_file_path:
@@ -440,20 +394,16 @@ def convert_to_maximo():
         status_label.config(text="โปรดเลือกชีท")
         return
 
-    # Try to load lookup data first
     if not load_lookup_data():
         status_label.config(text="ข้อผิดพลาดในการโหลด VLOOKUP Data")
-        return # Stop if lookup data cannot be loaded
+        return
 
-    # Try to load template rows for Process G
     if not load_template_rows():
         status_label.config(text="ข้อผิดพลาดในการโหลด Template Data")
-        return # Stop if template rows cannot be loaded
+        return
 
     try:
-        # Load the workbook in read-write mode to access formatting like strikethrough
         source_workbook = openpyxl.load_workbook(worklist_file_path)
-        # Use the selected sheet name
         source_sheet = source_workbook[selected_sheet_name.get()]
 
         new_workbook = openpyxl.Workbook()
@@ -461,7 +411,6 @@ def convert_to_maximo():
         new_sheet.title = "Template"
 
         # --- Process G: Copy template rows to the new sheet ---
-        # First, handle merged cells from the template
         if template_rows_data and isinstance(template_rows_data[0], list):
             for merged_range_str in template_rows_data[0]:
                 try:
@@ -469,16 +418,12 @@ def convert_to_maximo():
                 except Exception as merge_err:
                     print(f"Warning: Could not merge cells {merged_range_str}: {merge_err}") 
         
-        # Then, copy cell data for the first two rows
-        # template_rows_data[0] is merged ranges, so actual row data starts from index 1.
-        for r_idx_template_data in range(1, 3): # Process data for original template rows 1 and 2
-            # Corresponding row in new_sheet is also r_idx_template_data (1 and 2)
+        for r_idx_template_data in range(1, 3):
             row_data_to_copy = template_rows_data[r_idx_template_data] 
             for col_letter, cell_info in row_data_to_copy.items():
                 target_cell = new_sheet[f"{col_letter}{r_idx_template_data}"]
                 target_cell.value = cell_info['value']
                 
-                # Copy styles and comment
                 if cell_info['fill']:
                     target_cell.fill = cell_info['fill']
                 if cell_info['font']:
@@ -492,55 +437,43 @@ def convert_to_maximo():
                 if cell_info['comment']:
                     target_cell.comment = cell_info['comment']
 
-        # Define a fill style for highlighting (color #ff9e00)
         highlight_fill = PatternFill(start_color='FF9E00', end_color='FF9E00', fill_type='solid')
         
         # This list will store all processed row data before writing to new_sheet
-        # This is modified to hold all necessary values for sorting and later writing.
-        # Format: [ (D_value, E_value, I_value, J_value, K_value, S_value, Original_B, Original_F, Original_I_Worklist, Original_H_For_I), ... ]
+        # Format: [ (D_value, E_value, K_value, I_value, J_value, S_value, Original_I_Worklist), ... ]
+        # K_value is added to the tuple for sorting.
         all_processed_rows_data = [] 
         
-        # current_output_row_idx = 3 # This keeps track of the next available row in the new sheet (not used immediately for writing now)
-
         for source_row_idx in range(5, source_sheet.max_row + 1):
-            # Update status label with current processing row
             status_label.config(text=f"กำลังแปลงข้อมูล... (กำลังประมวลผลแถวที่ {source_row_idx})")
-            root.update_idletasks() # Force GUI update
+            root.update_idletasks()
 
-            # --- Strikethrough Check (Conditional Skip) ---
-            # If 'include_strikethrough_rows_var' is False (default: skip strikethrough rows),
-            # then check for strikethrough and skip the row if found.
             if not include_strikethrough_rows_var.get(): 
                 skip_row_due_to_strikethrough = False
-                for col_idx in range(1, source_sheet.max_column + 1): # Iterate through all columns in the row
+                for col_idx in range(1, source_sheet.max_column + 1):
                     cell = source_sheet.cell(row=source_row_idx, column=col_idx)
                     if cell.font and cell.font.strike:
                         skip_row_due_to_strikethrough = True
-                        break # Found strikethrough, no need to check other cells in this row
+                        break
                 
                 if skip_row_due_to_strikethrough:
-                    # You can add a more detailed message here if needed, or just let it skip silently.
-                    # For now, keeping the status update simple.
-                    continue # Skip this row and move to the next source row
+                    continue
 
             data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
-            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value # Original Column I from Worklist (for Col E)
+            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value
             data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
-            data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value # Original Column H from Worklist (for Col I after splitting)
+            data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value
             data_col_j = source_sheet.cell(row=source_row_idx, column=10).value
 
-            # Process A addition: Get data from Worklist Column I for output Column S (initial value)
-            data_col_i_worklist_for_s = source_sheet.cell(row=source_row_idx, column=9).value # Column I is index 9 in source
+            data_col_i_worklist_for_s = source_sheet.cell(row=source_row_idx, column=9).value
 
             j_parts = split_j_column_data(data_col_j)
             i_parts = split_i_column_data(data_col_h_for_i)
 
             for j_part_item in j_parts:
-                # Process E - First VLOOKUP for Column K (using J part)
                 lookup_key_k = str(j_part_item).strip() if j_part_item is not None else ""
                 vlookup_result_k = response_lookup_data['AB_lookup'].get(lookup_key_k, None)
 
-                # Process E - Second VLOOKUP for Column S (using Worklist I data -> now in Col S)
                 lookup_key_s = str(data_col_i_worklist_for_s).strip() if data_col_i_worklist_for_s is not None else ""
                 vlookup_result_s = response_lookup_data['CD_lookup'].get(lookup_key_s, None)
                 
@@ -548,102 +481,317 @@ def convert_to_maximo():
 
 
                 for i_part_item in i_parts:
-                    # Store all relevant data for this generated row
-                    # We store the *intended* output values for D, E, I, J, K, S
-                    # and the original source values if needed for other processes like grouping.
                     all_processed_rows_data.append((
-                        data_col_b,       # Will be written to Column D
-                        data_col_f,       # Will be written to Column E
-                        i_part_item,      # Will be written to Column I
-                        j_part_item,      # Will be written to Column J
-                        vlookup_result_k, # Will be written to Column K
-                        final_s_value,    # Will be written to Column S
-                        data_col_i        # Original Col I from Worklist for output Col V
+                        data_col_b,       # Index 0: D_value
+                        data_col_f,       # Index 1: E_value
+                        vlookup_result_k, # Index 2: K_value (NEW for sorting)
+                        i_part_item,      # Index 3: I_value
+                        j_part_item,      # Index 4: J_value
+                        final_s_value,    # Index 5: S_value
+                        data_col_i        # Index 6: Original Col I from Worklist for output Col V
                     ))
         
-        # --- NEW: Process H: Conditional Sorting by Column D then Column E ---
-        if enable_sort_var.get(): # Check if sorting is enabled
-            # Sort the collected data: primary key is D (index 0), secondary key is E (index 1)
-            # Use a lambda function for string conversion for robust sorting (handles None and numbers)
-            all_processed_rows_data.sort(key=lambda x: (str(x[0] or ''), str(x[1] or '')))
+        # --- Process H: Conditional Sorting by Column D then Column E then Column K ---
+        if enable_sort_var.get():
+            # Sort the collected data: primary key is D (index 0), secondary E (index 1), tertiary K (index 2)
+            # Use a lambda function for robust string conversion for sorting (handles None and numbers gracefully)
+            all_processed_rows_data.sort(key=lambda x: (
+                str(x[0] or ''),  # Column D
+                str(x[1] or ''),  # Column E
+                str(x[2] or '')   # Column K (NEW)
+            ))
             
-        # Now, write the sorted (or unsorted if option off) data to the new sheet
-        rows_for_f_process = [] # Reset for Process F after potential sorting
+        rows_for_f_process = [] # Will store (D, E, J) and current_output_row_idx for Process F
         current_output_row_idx = 3 # Start writing from row 3
 
         for row_data in all_processed_rows_data:
+            # Unpack the data based on the order it was stored in all_processed_rows_data
             data_col_d = row_data[0]
             data_col_e = row_data[1]
-            data_col_i_output = row_data[2]
-            data_col_j_output = row_data[3]
-            data_col_k_output = row_data[4]
+            data_col_k_output = row_data[2] # Use the K value directly from the stored data
+            data_col_i_output = row_data[3]
+            data_col_j_output = row_data[4]
             data_col_s_output = row_data[5]
-            data_col_v_output = row_data[6] # Original Col I from Worklist for Col V
+            data_col_v_output = row_data[6]
 
             new_sheet.cell(row=current_output_row_idx, column=4).value = data_col_d # Col D
             new_sheet.cell(row=current_output_row_idx, column=5).value = data_col_e # Col E
             
-            # Store Column I cell object to check its length for highlighting later
             cell_i_output_target = new_sheet.cell(row=current_output_row_idx, column=9)
             cell_i_output_target.value = data_col_i_output # Col I
 
             new_sheet.cell(row=current_output_row_idx, column=10).value = data_col_j_output # Col J
-            new_sheet.cell(row=current_output_row_idx, column=11).value = data_col_k_output # Col K
+            new_sheet.cell(row=current_output_row_idx, column=11).value = data_col_k_output # Col K (Now written from sorted data)
             new_sheet.cell(row=current_output_row_idx, column=19).value = data_col_s_output # Col S
-            new_sheet.cell(row=current_output_row_idx, column=22).value = data_col_v_output # Col V (Worklist Col I is written here)
+            new_sheet.cell(row=current_output_row_idx, column=22).value = data_col_v_output # Col V
 
-            # Apply highlighting if enabled and condition met
-            if enable_highlight_var.get(): # Check if highlighting is enabled by the user
-                # Check Column I content for length > 85
+            if enable_highlight_var.get():
                 if isinstance(cell_i_output_target.value, str) and len(cell_i_output_target.value) > 85:
-                    # Apply highlight to the cell in Column I (ONLY Column I)
                     cell_i_output_target.fill = highlight_fill
 
             # Store (D, E, J) values and their corresponding row index in the new sheet
-            # Convert None to empty string for sorting comparison
+            # It's important that this list is created *after* the main sorting
+            # and contains the row index in the *newly written* sheet.
             rows_for_f_process.append((
                 (str(data_col_d) if data_col_d is not None else "",
-                 str(data_col_e) if data_col_e is not None else "", # Col E is already the processed Worklist Col F
-                 str(data_col_j_output) if data_col_j_output is not None else ""), # Grouping key: (D, E, J) tuple
-                current_output_row_idx # The row index in the new sheet where this data was written
+                 str(data_col_e) if data_col_e is not None else "",
+                 str(data_col_j_output) if data_col_j_output is not None else ""),
+                current_output_row_idx
             ))
             
-            current_output_row_idx += 1 # Move to the next row for the new sheet
+            current_output_row_idx += 1
 
 
         # --- Process F: Counting in Column G and H based on D, E, J groups ---
         
-        # Sort the collected data by the grouping keys (D, E, J)
-        # This is crucial for itertools.groupby to correctly group consecutive identical keys.
-        rows_for_f_process.sort(key=lambda x: x[0])
+        # !!! IMPORTANT FIX !!!
+        # Remove the internal sort here. The main sorting for D, E, K
+        # has already been applied to all_processed_rows_data.
+        # For groupby to work correctly with D, E, J, the data
+        # MUST already be sorted by D, E, J. If D, E, K is the desired main sort,
+        # and D, E, J is a sub-grouping, the previous sort ensures this.
+        # If the user wants a D,E,K sort primarily, and then grouping by D,E,J,
+        # this still works because D,E,K sort will naturally group D,E,J together.
+        # If the sort key for groupby is different from the sort key of the main data,
+        # you might need to sort again here, but it would override the D,E,K sort.
+        # Given the request is D then E then K, removing this sort is the correct approach.
+        # rows_for_f_process.sort(key=lambda x: x[0]) # <--- REMOVED THIS LINE
 
-        # Apply the counting to the sorted and grouped data
-        for group_key, group_iter in itertools.groupby(rows_for_f_process, key=lambda x: x[0]):
-            current_count = 10 # Initialize count for each new group
-            # group_iter yields ( (D,E,J), row_idx ) tuples for the current group
-            for _, row_idx_in_new_sheet in group_iter:
-                # Write the current count to Column G (index 7) and Column H (index 8)
-                new_sheet.cell(row=row_idx_in_new_sheet, column=7).value = current_count
-                new_sheet.cell(row=row_idx_in_new_sheet, column=8).value = current_count
-                current_count += 10 # Increment by 10 for the next row in this group
+        # To ensure groupby works as expected, it's safer to sort by D, E, J here,
+        # but this will override the D, E, K sort.
+        # A better approach for combined sorting and grouping is to ensure the primary sort
+        # encompasses the grouping keys, or to perform the grouping before the final sort if order matters.
 
-        # Get the selected sheet name to use as the default file name suggestion
+        # Let's re-evaluate. If we want D, E, K as the final order, but still need to count G/H based on D, E, J.
+        # The current approach (sorting all_processed_rows_data by D, E, K then iterating to write)
+        # means that `rows_for_f_process` will already be in an order that has D, E, J grouped IF
+        # K values within a D, E group are also naturally grouped by J.
+        # If D, E, J is the ONLY basis for counting, and the D, E, K sort
+        # could break the contiguity of J within D,E, then a separate sort for `rows_for_f_process` IS needed.
+
+        # Let's consider the user's intent: "sort from D then E then K". This implies the final visual order.
+        # The counting for G and H (Process F) is based on groups of D, E, J.
+        # If we sort D, E, K, then write, the D, E, J groups might not be contiguous anymore for `itertools.groupby`.
+        # To fix this, we need to apply Process F *before* the final D, E, K sort, or handle the counting
+        # in a way that respects the final sort order.
+
+        # A more robust approach: Calculate counts *before* the final sort, then store them.
+        # Let's revert to storing the counts in the `all_processed_rows_data` for a cleaner flow.
+
+        # Let's collect items for grouping (D, E, J values) and their original index to update counts later.
+        # This will be done before the final D, E, K sort.
+        
+        # --- NEW STRATEGY FOR PROCESS F (Counting G & H) ---
+        # 1. Group data by (D, E, J) to calculate counts.
+        # 2. Store the counts with the corresponding (D, E, J) group.
+        # 3. When writing, retrieve the correct count for the D, E, J of that row.
+
+        # We need to map (D, E, J) to a count
+        group_counts = {} # Key: (D_value, E_value, J_value), Value: starting count
+        
+        # Create a temporary list to hold data for grouping, maintaining original order
+        # This list will be sorted ONLY for the purpose of itertools.groupby
+        temp_data_for_grouping = []
+        for i, row_data in enumerate(all_processed_rows_data):
+            # Extract D, E, J which are at indices 0, 1, 4 in all_processed_rows_data
+            d_val = str(row_data[0] or '')
+            e_val = str(row_data[1] or '')
+            j_val = str(row_data[4] or '')
+            temp_data_for_grouping.append(((d_val, e_val, j_val), i)) # Store (D,E,J) key and original index
+
+        # Sort this temporary list by the D, E, J keys for groupby
+        temp_data_for_grouping.sort(key=lambda x: x[0])
+
+        # Apply grouping and calculate counts
+        for group_key, group_iter in itertools.groupby(temp_data_for_grouping, key=lambda x: x[0]):
+            current_count = 10
+            for _, original_index in group_iter:
+                # Update the all_processed_rows_data list at the original index
+                # with the calculated G and H values.
+                # We need to expand all_processed_rows_data to hold G and H values.
+                # Let's re-structure `all_processed_rows_data` to be a dictionary or object if it gets too complex.
+                # For now, let's assume we can extend the tuple in all_processed_rows_data.
+                # This requires that `all_processed_rows_data` is a list of lists/mutable objects initially.
+                # Or, we can store the calculated G and H values in a separate map and look them up during write.
+                
+                # Let's use a separate map to store calculated G/H values, indexed by the original tuple position.
+                # This ensures `all_processed_rows_data` remains sortable as a tuple.
+                if 'calculated_g_h' not in globals(): # Initialize if not exists
+                    global calculated_g_h
+                    calculated_g_h = {} # Key: original_index, Value: (G_value, H_value)
+                
+                calculated_g_h[original_index] = (current_count, current_count)
+                current_count += 10
+
+        # --- Re-apply the D, E, K sort to all_processed_rows_data ---
+        # This sort should be the *last* major sort before writing.
+        if enable_sort_var.get():
+            all_processed_rows_data.sort(key=lambda x: (
+                str(x[0] or ''),  # Column D
+                str(x[1] or ''),  # Column E
+                str(x[2] or '')   # Column K
+            ))
+
+        # Now, write the sorted data and apply the pre-calculated G/H values
+        current_output_row_idx = 3 # Start writing from row 3
+        # We need a way to link back to the original index from `all_processed_rows_data`
+        # as it was *before* the D, E, K sort to retrieve the G/H values.
+        # This means `all_processed_rows_data` itself needs to contain its original index.
+
+        # Let's restart the loop with a clearer structure:
+        # Step 1: Collect all base data (D, E, K, I, J, S, V) along with its *original_source_row_idx*
+        # Step 2: Perform the D,E,J grouping logic on a temporary structure that includes original_source_row_idx
+        #         to calculate and store G,H values associated with each original_source_row_idx.
+        # Step 3: Add the calculated G,H values to the main `all_processed_rows_data` tuples.
+        # Step 4: Perform the final D,E,K sort on `all_processed_rows_data`.
+        # Step 5: Write the data to the new sheet.
+
+        # RE-STRUCTURING `all_processed_rows_data` COLLECTION
+        all_processed_rows_data = [] # Reset this list
+        # Store: (D_value, E_value, K_value, I_value, J_value, S_value, Original_I_Worklist, temporary_placeholder_G, temporary_placeholder_H)
+        # Use placeholder for G and H initially (e.g., None)
+        
+        # We need a mapping from a unique ID per generated row to its G/H values
+        # Let's just calculate it directly when the row is generated and store it.
+        # This makes the D,E,K sort potentially break the G/H grouping.
+        # The best way is to calculate G,H for (D,E,J) groups first, then assign them to the rows.
+
+        # Let's revert to a simpler method by calculating G and H after sorting by D, E, K.
+        # This means G and H will be based on the D, E, J of the rows *in the final sorted order*.
+        # If this is acceptable (i.e., G/H can reset in the middle of a D,E group if K causes it), then this is simpler.
+        # However, typically G/H (sequence numbers) should be based on consistent grouping keys.
+
+        # Let's assume the user wants G/H to be contiguous based on D, E, J regardless of K's influence.
+        # This implies that the D, E, J grouping/counting must happen *before* the final D, E, K sort.
+        # This means `all_processed_rows_data` needs to store G and H values.
+
+        # REVISED `all_processed_rows_data` Structure for better flow:
+        # all_processed_rows_data will contain dictionaries for flexibility:
+        # { 'D': val, 'E': val, 'K': val, 'I': val, 'J': val, 'S': val, 'V': val, 'G': val, 'H': val, 'original_row_idx': some_idx }
+        
+        rows_to_process_and_sort = [] # This will hold dictionaries
+        
+        # First Pass: Extract data, apply initial lookups and splits, prepare for grouping
+        # Store original source row index to help with debugging/tracking.
+        for source_row_idx in range(5, source_sheet.max_row + 1):
+            status_label.config(text=f"กำลังแปลงข้อมูล... (กำลังประมวลผลแถวที่ {source_row_idx})")
+            root.update_idletasks()
+
+            if not include_strikethrough_rows_var.get(): 
+                skip_row_due_to_strikethrough = False
+                for col_idx in range(1, source_sheet.max_column + 1):
+                    cell = source_sheet.cell(row=source_row_idx, column=col_idx)
+                    if cell.font and cell.font.strike:
+                        skip_row_due_to_strikethrough = True
+                        break
+                if skip_row_due_to_strikethrough:
+                    continue
+
+            data_col_b = source_sheet.cell(row=source_row_idx, column=2).value
+            data_col_i = source_sheet.cell(row=source_row_idx, column=9).value # Original Column I from Worklist (for Col V)
+            data_col_f = source_sheet.cell(row=source_row_idx, column=6).value
+            data_col_h_for_i = source_sheet.cell(row=source_row_idx, column=8).value # Original Column H for Col I after splitting
+            data_col_j = source_sheet.cell(row=source_row_idx, column=10).value
+
+            data_col_i_worklist_for_s = source_sheet.cell(row=source_row_idx, column=9).value
+
+            j_parts = split_j_column_data(data_col_j)
+            i_parts = split_i_column_data(data_col_h_for_i)
+
+            for j_part_item in j_parts:
+                lookup_key_k = str(j_part_item).strip() if j_part_item is not None else ""
+                vlookup_result_k = response_lookup_data['AB_lookup'].get(lookup_key_k, None)
+
+                lookup_key_s = str(data_col_i_worklist_for_s).strip() if data_col_i_worklist_for_s is not None else ""
+                vlookup_result_s = response_lookup_data['CD_lookup'].get(lookup_key_s, None)
+                final_s_value = vlookup_result_s if vlookup_result_s is not None else data_col_i_worklist_for_s
+
+                for i_part_item in i_parts:
+                    rows_to_process_and_sort.append({
+                        'D': data_col_b,
+                        'E': data_col_f,
+                        'I': i_part_item,
+                        'J': j_part_item,
+                        'K': vlookup_result_k,
+                        'S': final_s_value,
+                        'V': data_col_i, # Original Worklist Col I
+                        'G': None, # Placeholder for G
+                        'H': None  # Placeholder for H
+                    })
+
+        # Second Pass: Calculate G and H counts based on (D, E, J) groups
+        # Create a copy and sort by D, E, J to enable itertools.groupby
+        temp_for_grouping_gh = sorted(rows_to_process_and_sort, key=lambda x: (
+            str(x['D'] or ''), 
+            str(x['E'] or ''), 
+            str(x['J'] or '')
+        ))
+        
+        # Iterate through grouped data and assign G/H values
+        for group_key, group_iter in itertools.groupby(temp_for_grouping_gh, key=lambda x: (
+            str(x['D'] or ''), 
+            str(x['E'] or ''), 
+            str(x['J'] or '')
+        )):
+            current_count = 10
+            for row_dict in group_iter:
+                # Find the original row in rows_to_process_and_sort and update its G/H
+                # This is inefficient for large datasets, but simple.
+                # A better way for large data would be to map back using a unique ID or process in place.
+                # For typical Excel sizes (few thousands rows), this should be acceptable.
+                for original_row_dict in rows_to_process_and_sort:
+                    if original_row_dict is row_dict: # Check if it's the exact same dictionary object
+                        original_row_dict['G'] = current_count
+                        original_row_dict['H'] = current_count
+                        break
+                current_count += 10
+        
+        # Third Pass: Perform the final sort (D, E, K) if enabled
+        if enable_sort_var.get():
+            rows_to_write = sorted(rows_to_process_and_sort, key=lambda x: (
+                str(x['D'] or ''),
+                str(x['E'] or ''),
+                str(x['K'] or '')
+            ))
+        else:
+            rows_to_write = rows_to_process_and_sort # No sorting, use original order of generation
+
+        # Fourth Pass: Write the data to the new sheet
+        current_output_row_idx = 3
+        for row_data in rows_to_write:
+            new_sheet.cell(row=current_output_row_idx, column=4).value = row_data['D']
+            new_sheet.cell(row=current_output_row_idx, column=5).value = row_data['E']
+            new_sheet.cell(row=current_output_row_idx, column=7).value = row_data['G'] # G from calculated
+            new_sheet.cell(row=current_output_row_idx, column=8).value = row_data['H'] # H from calculated
+            
+            cell_i_output_target = new_sheet.cell(row=current_output_row_idx, column=9)
+            cell_i_output_target.value = row_data['I'] # I
+
+            new_sheet.cell(row=current_output_row_idx, column=10).value = row_data['J']
+            new_sheet.cell(row=current_output_row_idx, column=11).value = row_data['K']
+            new_sheet.cell(row=current_output_row_idx, column=19).value = row_data['S']
+            new_sheet.cell(row=current_output_row_idx, column=22).value = row_data['V']
+
+            if enable_highlight_var.get():
+                if isinstance(cell_i_output_target.value, str) and len(cell_i_output_target.value) > 85:
+                    cell_i_output_target.fill = highlight_fill
+            
+            current_output_row_idx += 1
+
         default_file_name = f"{selected_sheet_name.get()} converted.xlsx"
 
-        # Open a "Save As" dialog for the user to choose the save location for the new file
         output_file_path = filedialog.asksaveasfilename(
-            defaultextension=".xlsx", # Default file extension
-            filetypes=[("Excel files", "*.xlsx")], # Filter to show only Excel files
-            title="บันทึกไฟล์ Maximo Data เป็น", # Dialog title
-            initialfile=default_file_name # Default file name suggestion now uses the selected sheet name
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx")],
+            title="บันทึกไฟล์ Maximo Data เป็น",
+            initialfile=default_file_name
         )
 
-        if not output_file_path: # If the user clicks Cancel in the save dialog
+        if not output_file_path:
             messagebox.showinfo("ยกเลิก", "การบันทึกไฟล์ถูกยกเลิก")
             status_label.config(text="การแปลงข้อมูลถูกยกเลิก")
             return
 
-        # Save the new workbook to the chosen path
         new_workbook.save(output_file_path)
 
         messagebox.showinfo(
@@ -663,48 +811,38 @@ def convert_to_maximo():
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("Excel Worklist Converter")
-root.geometry("720x550") # Adjusted height to accommodate the status label and new option
-root.resizable(False, False) # Prevent window resizing
+root.geometry("720x550")
+root.resizable(False, False)
 root.iconbitmap("./transfer.ico")
 root.option_add("*font", "Tahoma 14")
 
-# Variable to store the selected file path (initialized to None)
 worklist_file_path = None
-# Initialize global variable for lookup data
 response_lookup_data = {
     'AB_lookup': {},
     'CD_lookup': {}
 }
-# Global variable for the selected sheet name
 selected_sheet_name = None 
-# Global variable for the sheet selection UI elements
 sheet_selection_frame = None
 sheet_option_menu = None
 
-# Initialize the BooleanVar for highlighting
-enable_highlight_var = tk.BooleanVar(value=False) # Default to false (not highlighted)
-# Initialize the BooleanVar for including strikethrough rows (default to false, meaning skip them)
+enable_highlight_var = tk.BooleanVar(value=False)
 include_strikethrough_rows_var = tk.BooleanVar(value=False) 
-# Initialize the BooleanVar for sorting (default to false, meaning no sort)
-enable_sort_var = tk.BooleanVar(value=False) # NEW: Default to no sorting
+enable_sort_var = tk.BooleanVar(value=False)
 
-# Frame for Worklist File Selection
+template_rows_data = []
+
 file_frame = tk.LabelFrame(root, text="1. Worklist File", padx=10, pady=10)
 file_frame.pack(pady=10, padx=20, fill="x")
 
-# Button to select file
 select_file_button = tk.Button(file_frame, text="เลือกไฟล์ Excel", command=select_excel_file)
 select_file_button.pack(side=tk.LEFT, padx=(0, 10))
 
-# Label to display the selected file path
 file_path_label = tk.Label(file_frame, text="ยังไม่ได้เลือกไฟล์ Worklist", wraplength=350, justify="left")
 file_path_label.pack(side=tk.LEFT, fill="x", expand=True)
 
-# Highlighting and Exclusion options frame
 options_frame = tk.LabelFrame(root, text="ตัวเลือกผลลัพธ์", padx=10, pady=5)
 options_frame.pack(pady=5, padx=20, fill="x")
 
-# Checkbutton for enabling highlighting
 highlight_check = tk.Checkbutton(
     options_frame, 
     text="1. เปิดใช้งานการเน้นสี (Column Activity หากตัวอักษรเกิน 85 ตัว)",
@@ -713,7 +851,6 @@ highlight_check = tk.Checkbutton(
 )
 highlight_check.pack(side=tk.TOP, anchor="w", pady=2) 
 
-# Checkbutton for enabling including strikethrough rows
 strikethrough_check = tk.Checkbutton(
     options_frame,
     text="2. ดึง Row ที่มี strikethrough (ไม่ดึงเป็นค่าเริ่มต้น)",
@@ -721,30 +858,25 @@ strikethrough_check = tk.Checkbutton(
 )
 strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
 
-# NEW: Checkbutton for enabling sorting by D and E
 sort_check = tk.Checkbutton(
     options_frame,
-    text="3. เรียงลำดับข้อมูล A-Z ตาม Column D และ Column E",
+    text="3. เรียงลำดับข้อมูล (จำเป็นถ้าไม่เรียง TASK ORDER อาจจะผิดได้)", # Updated text
     variable=enable_sort_var
 )
 sort_check.pack(side=tk.TOP, anchor="w", pady=2)
 
-# Convert to Maximo button (initially disabled until a file is selected)
 convert_button = tk.Button(root, text="Convert to Maximo", command=run_conversion_process, state=tk.DISABLED)
 convert_button.pack(pady=20)
 
-# Status label to show processing messages
 status_label = tk.Label(root, text="", fg="blue", font=("Tahoma", 12))
 status_label.pack(pady=5)
 
-# Label for the update information at the bottom right
 update_info_label = tk.Label(
     root,
-    text="อัปเดตล่าสุด 20/6/2568 โดย นศ.ฝึกงาน ปิยะ",
-    font=("Tahoma", 10), # Smaller font size for this info
-    fg="gray" # Gray color for less prominence
+    text="โดย : นศ.ฝึกงาน ปิยะ  ระวิงทอง | อัปเดตล่าสุด : 21/6/2568",
+    font=("Tahoma", 10),
+    fg="gray"
 )
-update_info_label.pack(side=tk.BOTTOM, anchor="se", padx=10, pady=5) # Position at bottom-right
+update_info_label.pack(side=tk.BOTTOM, anchor="se", padx=10, pady=5)
 
-# Start the Tkinter event loop
 root.mainloop()
