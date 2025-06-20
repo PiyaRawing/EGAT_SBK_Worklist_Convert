@@ -8,6 +8,7 @@
 - Split Acitivity
 - Highlight cell ที่เกิน **85** ตัวอักษร (ตามข้ำจำกัดของโปรแกรม Maximo)
 - จัดลำดับ TASK order
+- จัดลำดับ งาน Short By KKS EQUIMENT RESPONE CARF
 
 ## ขั้นตอนก่อนใช้งาน (มี 2 ทางเลือกในการใช้งาน)
 **1. วิธีแบบอาศัย Python**
@@ -40,7 +41,7 @@ pip install openpyxl
 
 3. ทำการกดเลือกไฟล์ Worklist.xlsx
 
-4. ติ๊ก CheckBox หากต้องการให้โปรแกรม Highlight สี ที่ Cell ที่มีตัวอักษรเกิน 100 ตัว
+4. ติ๊ก CheckBox หากต้องการให้โปรแกรม **Highlight สี ที่ Cell ที่มีตัวอักษรเกิน 85 ตัว** หรือ **เอา Row จากไฟล์แม่ที่ถูก Strikethough ไหม (ไม่เอาเป็นค่าเริ่มต้น)** หรือ จะ Short **ข้อมมูลไหม (ควร Short เพราะข้อมูลจากไฟล์แม่อาจไม่ถูกกต้อง) **
 
 5. เลือก Sheet ที่ต้องการจะ Convert
 
@@ -49,6 +50,9 @@ pip install openpyxl
 7. เลือกที่อยู่ที่จะ Save File
 
 8. เสร็จสิ้นการทำงาน
+
+![image](https://github.com/user-attachments/assets/88b169f7-01ab-4ae5-bb89-5f501fe15081)
+
 
 ## เพิ่มหรือแก้ไข หน่วยงาน ใน File Respone
 หากจะแก้ไขข้อมูลของหน่วยงาน ใน Folder ที่แตกไฟล์ไป จะมีไฟล์ **Respone - Do not Delete.xlsx** สามารถ แก้ไขได้ ในไฟล์นี้
