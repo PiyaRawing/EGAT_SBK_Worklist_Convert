@@ -724,7 +724,7 @@ strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
 # NEW: Checkbutton for enabling sorting by D and E
 sort_check = tk.Checkbutton(
     options_frame,
-    text="3. เรียงลำดับข้อมูล (แนะนำให้เปิด เนื่องจากไฟล์แม่อาจเรียงผิดไว้)",
+    text="3. เรียงลำดับข้อมูล A-Z ตาม Column D และ Column E",
     variable=enable_sort_var
 )
 sort_check.pack(side=tk.TOP, anchor="w", pady=2)
