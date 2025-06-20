@@ -327,7 +327,7 @@ def load_template_rows():
             "กรุณาตรวจสอบว่าไฟล์ 'Respone - Do not Delete.xlsx' อยู่ในโฟลเดอร์เดียวกับโปรแกรม"
         )
         return False
-
+    
     try:
         template_workbook = openpyxl.load_workbook(response_file_path)
         if 'Template' in template_workbook.sheetnames:
@@ -425,7 +425,7 @@ def convert_to_maximo():
 
         new_workbook = openpyxl.Workbook()
         new_sheet = new_workbook.active
-        new_sheet.title = "Maximo Converted Data"
+        new_sheet.title = "Template"
 
         # --- Process G: Copy template rows to the new sheet ---
         # First, handle merged cells from the template
@@ -652,6 +652,15 @@ strikethrough_check.pack(side=tk.TOP, anchor="w", pady=2)
 # Convert to Maximo button (initially disabled until a file is selected)
 convert_button = tk.Button(root, text="Convert to Maximo", command=convert_to_maximo, state=tk.DISABLED)
 convert_button.pack(pady=20)
+
+# Label for the update information at the bottom right
+update_info_label = tk.Label(
+    root,
+    text="อัปเดตล่าสุด : 20/6/2568 โดย นศ.ฝึกงาน ปิยะ ระวิงทอง",
+    font=("Tahoma", 10), # Smaller font size for this info
+    fg="gray" # Gray color for less prominence
+)
+update_info_label.pack(side=tk.BOTTOM, anchor="se", padx=10, pady=5) # Position at bottom-right
 
 # Start the Tkinter event loop
 root.mainloop()
